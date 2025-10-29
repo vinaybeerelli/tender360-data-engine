@@ -11,7 +11,7 @@ description: API-based data extraction
 
 **Assigned Issues:**
 - Issue #1: Fix API Scraper Session Management (P0)
-- Issue #5: Document Link Extraction (P1)
+- Issue #6: Document Link Extraction (P1)
 - Issue #9: Error Handling & Retry Logic (P1)
 
 **Files Owned:**
