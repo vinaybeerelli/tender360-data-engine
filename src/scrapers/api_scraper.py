@@ -7,7 +7,12 @@ from typing import List, Dict, Optional
 import requests
 
 from .base_scraper import BaseScraper
-from config.constants import API_HEADERS, API_PAYLOAD, TENDER_LIST_API, TENDER_LIST_PAGE
+from config.constants import (
+    API_HEADERS,
+    API_PAYLOAD,
+    TENDER_LIST_API,
+    TENDER_LIST_PAGE
+)
 from config.settings import Settings
 from src.utils.logger import log
 from src.utils.helpers import retry, random_delay
@@ -55,7 +60,9 @@ class APIScraper(BaseScraper):
             
             # Verify session cookie was set
             if 'JSESSIONID' in self.session.cookies:
-                log.info(f"Session established successfully. Cookie: JSESSIONID={self.session.cookies['JSESSIONID']}")
+                # Only log truncated cookie value for security
+                cookie_value = self.session.cookies['JSESSIONID']
+                log.info(f"Session established successfully. Cookie: JSESSIONID={cookie_value[:8]}...")
             else:
                 log.warning("Session established but JSESSIONID cookie not found in response")
                 
