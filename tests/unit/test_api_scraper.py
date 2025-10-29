@@ -260,6 +260,7 @@ class TestAPIScraperDataParsing:
         scraper = APIScraper(headless=True)
         
         # Test various onclick formats
+        # Note: onclick params represent: param1=tender_no, param2=mode, param3=ref_no
         test_cases = [
             (
                 "<a onclick=\"GetTenderInfo('param1','param2','param3')\">View</a>",

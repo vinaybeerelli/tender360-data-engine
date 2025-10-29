@@ -242,7 +242,8 @@ class APIScraper(BaseScraper):
         """
         Extract parameters from onclick attribute in actions column.
         
-        Example: onclick="GetTenderInfo('param1','param2','param3')"
+        The onclick typically contains a function call like:
+        onclick="GetTenderInfo('tenderNo','mode','refNo')"
         
         Args:
             actions_html: HTML content of actions column
@@ -253,13 +254,23 @@ class APIScraper(BaseScraper):
         params = {}
         
         try:
-            # Look for onclick attribute with function call
-            match = re.search(r"onclick=[\"']GetTenderInfo\(['\"]([^'\"]+)['\"],\s*['\"]([^'\"]+)['\"],\s*['\"]([^'\"]+)['\"]", str(actions_html))
+            # Look for onclick attribute with GetTenderInfo function call
+            # Pattern matches: GetTenderInfo('param1','param2','param3')
+            # Captures three quoted parameters separated by commas
+            pattern = r"""
+                onclick=[\"']           # onclick attribute start
+                GetTenderInfo\(         # Function name
+                ['\"]([^'\"]+)['\"],    # First parameter (tender number)
+                \s*['\"]([^'\"]+)['\"], # Second parameter (mode)
+                \s*['\"]([^'\"]+)['\"]  # Third parameter (reference number)
+            """
+            
+            match = re.search(pattern, str(actions_html), re.VERBOSE)
             
             if match:
-                params['onclick_param1'] = match.group(1)
-                params['onclick_param2'] = match.group(2)
-                params['onclick_param3'] = match.group(3)
+                params['onclick_param1'] = match.group(1)  # Tender number
+                params['onclick_param2'] = match.group(2)  # Mode
+                params['onclick_param3'] = match.group(3)  # Reference number
                 log.debug(f"Extracted onclick params: {params}")
             
         except Exception as e:
