@@ -4,6 +4,8 @@
 
 The `API_PAYLOAD` in `config/constants.py` contains all 60 parameters required for DataTables server-side processing (legacy format version 1.9). This document explains the complete parameter structure for the Telangana eTender portal API endpoint.
 
+**Note**: While the issue title references "30+ params", the complete implementation requires all 60 parameters for proper DataTables functionality. The "30+" was a minimum threshold - we've implemented the full set.
+
 ## Parameter Structure
 
 ### Total: 60 Parameters
@@ -181,8 +183,8 @@ If the API returns `{"aaData": [], "iTotalRecords": 0}`:
 
 ## References
 
-- **DataTables Legacy Documentation**: https://legacy.datatables.net/usage/server-side
-- **Server-side Processing**: https://datatables.net/manual/server-side
+- **DataTables Documentation**: https://datatables.net/manual/server-side (Note: Links are current as of 2024)
+- **Legacy DataTables**: https://legacy.datatables.net/usage/server-side
 - **Issue #1**: Fix API Scraper Session Management
 - **Related Files**:
   - `config/constants.py`: Parameter definitions
@@ -191,5 +193,5 @@ If the API returns `{"aaData": [], "iTotalRecords": 0}`:
 
 ## Version History
 
-- **v1.0** (2025-10-29): Initial implementation with 60 parameters, empty sColumns
-- **v1.1** (2025-10-29): Fixed sColumns to include actual column names ✅
+- **v1.0**: Initial implementation with 60 parameters, empty sColumns
+- **v1.1**: Fixed sColumns to include actual column names ✅
