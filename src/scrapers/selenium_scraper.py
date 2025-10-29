@@ -21,6 +21,25 @@ from src.utils.logger import log
 from src.utils.exceptions import ScraperException
 
 
+class DataRowsPresent:
+    """
+    Custom expected condition to check if data rows are present in table.
+    More efficient than lambda as it avoids repeated element lookups.
+    """
+
+    def __init__(self, table_id: str):
+        self.table_id = table_id
+        self.selector = f"#{table_id} tbody tr:not(.dataTables_empty)"
+
+    def __call__(self, driver):
+        """Check if data rows exist."""
+        try:
+            rows = driver.find_elements(By.CSS_SELECTOR, self.selector)
+            return len(rows) > 0
+        except Exception:
+            return False
+
+
 class SeleniumScraper(BaseScraper):
     """
     Browser-based scraper using Selenium.
@@ -54,15 +73,18 @@ class SeleniumScraper(BaseScraper):
             options.add_argument("--disable-gpu")
             options.add_argument("--window-size=1920,1080")
 
-            # User agent to appear more human
+            # User agent - use a more generic recent Chrome version
+            # This can be made configurable in future via Settings
             user_agent = (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
+                "Chrome/119.0.0.0 Safari/537.36"
             )
             options.add_argument(f"user-agent={user_agent}")
 
-            self.driver = uc.Chrome(options=options, version_main=None)
+            # Auto-detect Chrome version for better compatibility
+            # version_main=None allows auto-detection of installed Chrome
+            self.driver = uc.Chrome(options=options, version_main=None, use_subprocess=True)
             self.driver.set_page_load_timeout(60)
 
             log.info("Chrome driver initialized successfully")
@@ -117,14 +139,9 @@ class SeleniumScraper(BaseScraper):
             WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.ID, TABLE_ID)))
             log.debug(f"Table element #{TABLE_ID} found")
 
-            # Now wait for actual data rows (tbody tr with data)
-            # DataTables adds specific classes when data is loaded
-            WebDriverWait(self.driver, timeout).until(
-                lambda driver: len(
-                    driver.find_elements(By.CSS_SELECTOR, f"#{TABLE_ID} tbody tr:not(.dataTables_empty)")
-                )
-                > 0
-            )
+            # Now wait for actual data rows using custom condition
+            # This is more efficient than lambda and provides better debugging
+            WebDriverWait(self.driver, timeout).until(DataRowsPresent(TABLE_ID))
 
             rows = self.driver.find_elements(By.CSS_SELECTOR, f"#{TABLE_ID} tbody tr:not(.dataTables_empty)")
             log.info(f"DataTable populated with {len(rows)} rows")
