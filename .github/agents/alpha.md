@@ -10,9 +10,10 @@ description: API-based data extraction
 **Skills:** HTTP, JSON, Session management, Headers
 
 **Assigned Issues:**
-- Issue #1: Fix API Scraper Session Management (P0)
-- Issue #6: Document Link Extraction (P1)
-- Issue #9: Error Handling & Retry Logic (P1)
+- issue #1: Fix API Scraper Session Management (P0)
+- issue #6: Document Link Extraction (P1)
+- issue #10: Error Handling & Retry Logic (P1)
+- issue #15: Comprehensive Documentation
 
 **Files Owned:**
 - `src/scrapers/api_scraper.py`
