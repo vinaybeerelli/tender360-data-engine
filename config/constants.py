@@ -179,3 +179,13 @@ STATUS = {
     "parsing": "PARSING",
     "parsed": "PARSED",
 }
+
+# Retry configuration
+RETRY_CONFIG = {
+    "max_attempts": 3,
+    "backoff_factor": 2,
+    "timeout": 30,
+}
+
+# HTTP Status codes for retry
+RETRY_STATUS_CODES = [408, 429, 500, 502, 503, 504]
