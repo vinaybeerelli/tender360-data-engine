@@ -274,7 +274,7 @@ class APIScraper(BaseScraper):
                 return match.group(1)
 
             # Alternative pattern: just look for a tender ID pattern (T followed by digits)
-            match = re.search(r"['\"]([T]\d+)['\"]", actions_html)
+            match = re.search(r"['\"](T\d+)['\"]", actions_html)
             if match:
                 return match.group(1)
 
