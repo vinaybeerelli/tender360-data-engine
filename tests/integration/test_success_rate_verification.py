@@ -27,7 +27,12 @@ SUCCESSFUL_RESPONSE = {
 
 class TestSuccessRateVerification:
     """Verify 90%+ success rate requirement"""
-    
+
+    # Test configuration constants
+    TOTAL_ATTEMPTS = 100
+    SIMULATED_SUCCESS_COUNT = 95  # 95% success rate to exceed 90% target
+    EXPECTED_MIN_SUCCESS_RATE = 90  # Minimum required success rate
+
     @patch('src.scrapers.api_scraper.requests.Session')
     def test_verify_90_percent_success_rate(self, mock_session_class):
         """
@@ -38,20 +43,19 @@ class TestSuccessRateVerification:
         the required 90% success rate.
         """
         # Track results
-        total_attempts = 100
+        total_attempts = self.TOTAL_ATTEMPTS
         successful_attempts = 0
         failed_attempts = 0
         total_tenders_scraped = 0
-        
+
         for i in range(total_attempts):
             # Setup mock for each attempt
             mock_session = Mock()
             mock_session.cookies.keys.return_value = ['JSESSIONID']
             mock_session.get.return_value = Mock(raise_for_status=Mock())
-            
-            # Simulate 95% success rate (exceeding 90% requirement)
-            # 95 successful responses, 5 failures
-            if i < 95:
+
+            # Simulate realistic success rate (SIMULATED_SUCCESS_COUNT successful, rest failures)
+            if i < self.SIMULATED_SUCCESS_COUNT:
                 # Successful response
                 mock_post_response = Mock()
                 mock_post_response.raise_for_status = Mock()
@@ -81,7 +85,11 @@ class TestSuccessRateVerification:
         
         # Calculate success rate
         success_rate = (successful_attempts / total_attempts) * 100
-        avg_tenders = total_tenders_scraped / successful_attempts if successful_attempts > 0 else 0
+
+        # Validate we had successful attempts (test should not silently pass if all fail)
+        assert successful_attempts > 0, "Test failed: no successful scraping attempts"
+
+        avg_tenders = total_tenders_scraped / successful_attempts
         
         # Print detailed report
         print("\n" + "="*80)
@@ -102,10 +110,12 @@ class TestSuccessRateVerification:
         else:
             print("❌ VERIFICATION FAILED: Success rate below 90%")
         print("="*80 + "\n")
-        
+
         # Assert the requirement
-        assert success_rate >= 90, f"Success rate {success_rate:.1f}% is below 90% requirement"
-        assert successful_attempts >= 90, f"Only {successful_attempts} successful out of 100 attempts"
+        assert success_rate >= self.EXPECTED_MIN_SUCCESS_RATE, \
+            f"Success rate {success_rate:.1f}% is below {self.EXPECTED_MIN_SUCCESS_RATE}% requirement"
+        assert successful_attempts >= self.EXPECTED_MIN_SUCCESS_RATE, \
+            f"Only {successful_attempts} successful out of 100 attempts"
     
     @patch('src.scrapers.api_scraper.requests.Session')
     def test_success_rate_with_retry_logic(self, mock_session_class):
