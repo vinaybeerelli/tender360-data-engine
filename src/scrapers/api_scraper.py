@@ -269,7 +269,7 @@ class APIScraper(BaseScraper):
         """
         try:
             # Look for pattern like viewDetailTender('T001234567')
-            match = re.search(r"viewDetailTender\(['\"]([^'\"]+)['\"]\)", actions_html)
+            match = re.search(r"viewDetailTender\(['\"]([T]\d+)['\"]\)", actions_html)
             if match:
                 return match.group(1)
 
