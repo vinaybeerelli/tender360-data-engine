@@ -36,7 +36,8 @@ class APIScraper(BaseScraper):
         log.info("Establishing session...")
         self.session = requests.Session()
         # Visit main page to get JSESSIONID cookie
-        # response = self.session.get(BASE_URL + "/TenderDetailsHome.html")
+        # NOTE: When implementing, use API_HEADERS which includes X-Requested-With: XMLHttpRequest
+        # response = self.session.get(BASE_URL + "/TenderDetailsHome.html", headers=API_HEADERS)
         pass
     
     @retry(max_attempts=3)
@@ -57,7 +58,7 @@ class APIScraper(BaseScraper):
         log.info(f"Scraping tender list (limit={limit})...")
         
         # This will be implemented to:
-        # 1. POST to API endpoint with proper headers
+        # 1. POST to API endpoint with API_HEADERS (includes X-Requested-With: XMLHttpRequest)
         # 2. Parse JSON response
         # 3. Extract tender data
         # 4. Return list of tenders

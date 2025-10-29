@@ -26,13 +26,33 @@ TENDER_FIELDS = {
 }
 
 # HTTP Headers for API scraping
+# Complete headers captured from browser DevTools for AJAX requests
+# These headers mimic a real browser to avoid 403 Forbidden errors
 API_HEADERS = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Host": "tender.telangana.gov.in",
     "Origin": "https://tender.telangana.gov.in",
     "Referer": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "X-Requested-With": "XMLHttpRequest",
+    "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"macOS"',
+}
+
+# HTTP Headers for document downloads
+DOWNLOAD_HEADERS = {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://tender.telangana.gov.in/",
     "X-Requested-With": "XMLHttpRequest",
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 }
@@ -159,4 +179,3 @@ STATUS = {
     "parsing": "PARSING",
     "parsed": "PARSED",
 }
-
