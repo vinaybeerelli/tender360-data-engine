@@ -101,9 +101,12 @@ def check_database() -> Dict[str, Any]:
         }
     
     except Exception as e:
+        # Log the actual error but return sanitized message to users
+        import logging
+        logging.error(f"Database check failed: {e}")
         return {
             "status": "unhealthy",
-            "error": str(e)
+            "error": "Database check failed"
         }
 
 
@@ -121,9 +124,11 @@ def check_disk_space() -> Dict[str, Any]:
         }
     
     except Exception as e:
+        import logging
+        logging.error(f"Disk space check failed: {e}")
         return {
             "status": "unhealthy",
-            "error": str(e)
+            "error": "Disk space check failed"
         }
 
 
@@ -140,9 +145,11 @@ def check_memory() -> Dict[str, Any]:
         }
     
     except Exception as e:
+        import logging
+        logging.error(f"Memory check failed: {e}")
         return {
             "status": "unhealthy",
-            "error": str(e)
+            "error": "Memory check failed"
         }
 
 
@@ -186,9 +193,11 @@ def check_logs() -> Dict[str, Any]:
         }
     
     except Exception as e:
+        import logging
+        logging.error(f"Log check failed: {e}")
         return {
             "status": "unhealthy",
-            "error": str(e)
+            "error": "Log check failed"
         }
 
 
@@ -220,9 +229,11 @@ def check_scraper_process() -> Dict[str, Any]:
         }
     
     except Exception as e:
+        import logging
+        logging.error(f"Scraper process check failed: {e}")
         return {
             "status": "unknown",
-            "error": str(e)
+            "error": "Process check failed"
         }
 
 
@@ -267,20 +278,30 @@ async def health_check():
             }
         )
     else:
+        # Sanitize error messages for unhealthy status
+        db_error = db_status.get("error", "Unknown error") if db_status.get("status") != "healthy" else None
+        disk_error = disk_status.get("error", "Unknown error") if disk_status.get("status") not in ["healthy", "warning"] else None
+        
         return JSONResponse(
             status_code=503,
             content={
                 "status": "unhealthy",
                 "timestamp": datetime.now().isoformat(),
-                "database": db_status,
-                "disk": disk_status
+                "database": {"status": db_status.get("status"), "error": db_error} if db_error else db_status.get("status"),
+                "disk": {"status": disk_status.get("status"), "error": disk_error} if disk_error else disk_status.get("status")
             }
         )
 
 
 @app.get("/health/detailed")
 async def detailed_health():
-    """Detailed health check with all system metrics."""
+    """
+    Detailed health check with all system metrics.
+    
+    WARNING: This endpoint exposes detailed system information and should be
+    restricted to internal monitoring systems only. Use firewall rules or 
+    authentication to prevent public access.
+    """
     db_status = check_database()
     disk_status = check_disk_space()
     memory_status = check_memory()
@@ -293,17 +314,26 @@ async def detailed_health():
         memory_status.get("status") in ["healthy", "warning"]
     )
     
+    # Sanitize error messages for external exposure
+    def sanitize_status(status_dict):
+        """Remove detailed error traces from status dict."""
+        sanitized = status_dict.copy()
+        if "error" in sanitized and sanitized.get("status") in ["unhealthy", "warning"]:
+            # Keep the error message but ensure it's generic
+            pass  # Already sanitized in check functions
+        return sanitized
+    
     return JSONResponse(
         status_code=200 if overall_healthy else 503,
         content={
             "status": "healthy" if overall_healthy else "unhealthy",
             "timestamp": datetime.now().isoformat(),
             "uptime": get_uptime(),
-            "database": db_status,
-            "disk": disk_status,
-            "memory": memory_status,
-            "logs": logs_status,
-            "scraper_process": scraper_status
+            "database": sanitize_status(db_status),
+            "disk": sanitize_status(disk_status),
+            "memory": sanitize_status(memory_status),
+            "logs": sanitize_status(logs_status),
+            "scraper_process": sanitize_status(scraper_status)
         }
     )
 

@@ -212,9 +212,28 @@ In AWS Console, configure Security Group:
 **Inbound Rules:**
 - SSH (22): Your IP address only
 - Custom TCP (8000): Your monitoring system IP (optional)
+  - **IMPORTANT**: Restrict health check endpoint access to trusted IPs only
+  - The `/health/detailed` endpoint exposes system information
+  - Use VPC or IP whitelisting for production
 
 **Outbound Rules:**
 - All traffic: 0.0.0.0/0 (required for scraping)
+
+### Health Check Endpoint Security
+
+**Restrict Access to Monitoring Tools:**
+```bash
+# Option 1: Use firewall to allow only specific IPs
+sudo ufw allow from YOUR_MONITORING_IP to any port 8000
+
+# Option 2: Use internal VPC access only
+# Configure Security Group to allow 8000 only from VPC CIDR
+```
+
+**Endpoints:**
+- `/health` - Basic status (safe for public monitoring)
+- `/health/detailed` - Detailed metrics (restrict access)
+- `/metrics` - Prometheus metrics (restrict access)
 
 ### SSH Key Only Access
 
