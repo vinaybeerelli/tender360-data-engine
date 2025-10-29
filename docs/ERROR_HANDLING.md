@@ -64,10 +64,10 @@ Example with `backoff_factor=2`:
 ### Example Output
 
 ```
-2025-10-29 19:12:30 | DEBUG    | Executing fetch_data (attempt 1/3)
-2025-10-29 19:12:32 | WARNING  | ⚠ fetch_data attempt 1/3 failed: Timeout: Connection timeout. Retrying in 2s...
-2025-10-29 19:12:35 | DEBUG    | Executing fetch_data (attempt 2/3)
-2025-10-29 19:12:37 | INFO     | ✓ fetch_data succeeded after 2 attempt(s)
+2024-10-29 19:12:30 | DEBUG    | Executing fetch_data (attempt 1/3)
+2024-10-29 19:12:32 | WARNING  | ⚠ fetch_data attempt 1/3 failed: Timeout: Connection timeout. Retrying in 2s...
+2024-10-29 19:12:35 | DEBUG    | Executing fetch_data (attempt 2/3)
+2024-10-29 19:12:37 | INFO     | ✓ fetch_data succeeded after 2 attempt(s)
 ```
 
 ## Exception Hierarchy
@@ -325,7 +325,7 @@ All logs include:
 
 Example:
 ```
-2025-10-29 19:12:30 | WARNING | src.scrapers.api_scraper:scrape_tender_list:85 - 
+2024-10-29 19:12:30 | WARNING | src.scrapers.api_scraper:scrape_tender_list:85 - 
   ⚠ scrape_tender_list attempt 1/3 failed: Timeout: Connection timeout. Retrying in 2s...
 ```
 
@@ -465,6 +465,6 @@ Planned improvements:
 
 ---
 
-**Last Updated:** October 29, 2025  
+**Last Updated:** October 29, 2024  
 **Version:** 1.0  
 **Author:** Agent ALPHA (API Scraping Specialist)
