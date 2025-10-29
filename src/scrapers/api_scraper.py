@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 import requests
 
 from .base_scraper import BaseScraper
-from config.constants import API_HEADERS, API_PAYLOAD, TENDER_LIST_API
+from config.constants import API_HEADERS, API_PAYLOAD, TENDER_LIST_API, TENDER_LIST_PAGE
 from config.settings import Settings
 from src.utils.logger import log
 from src.utils.helpers import retry, random_delay
@@ -32,12 +32,36 @@ class APIScraper(BaseScraper):
         
         IMPORTANT: Must visit main page before calling API endpoint.
         """
-        # TODO: Implement in Issue #1
         log.info("Establishing session...")
         self.session = requests.Session()
+        
         # Visit main page to get JSESSIONID cookie
-        # response = self.session.get(BASE_URL + "/TenderDetailsHome.html")
-        pass
+        try:
+            url = self.settings.BASE_URL + TENDER_LIST_PAGE
+            log.info(f"Visiting main page: {url}")
+            
+            response = self.session.get(
+                url,
+                timeout=self.settings.REQUEST_TIMEOUT,
+                headers={
+                    "User-Agent": API_HEADERS["User-Agent"],
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": API_HEADERS["Accept-Language"],
+                }
+            )
+            
+            # Check if request was successful
+            response.raise_for_status()
+            
+            # Verify session cookie was set
+            if 'JSESSIONID' in self.session.cookies:
+                log.info(f"Session established successfully. Cookie: JSESSIONID={self.session.cookies['JSESSIONID']}")
+            else:
+                log.warning("Session established but JSESSIONID cookie not found in response")
+                
+        except requests.exceptions.RequestException as e:
+            log.error(f"Failed to establish session: {e}")
+            raise
     
     @retry(max_attempts=3)
     def scrape_tender_list(self, limit: Optional[int] = None) -> List[Dict]:
