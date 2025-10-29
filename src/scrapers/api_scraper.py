@@ -202,7 +202,18 @@ class APIScraper(BaseScraper):
         Parse a tender row from API response.
 
         Args:
-            row: List of tender field values from API
+            row: List of tender field values from API response.
+                Expected structure (10 elements):
+                [0] department (str)
+                [1] notice_number (str)
+                [2] category (str)
+                [3] work_name (str)
+                [4] tender_value (str)
+                [5] published_date (str)
+                [6] bid_start_date (str)
+                [7] bid_close_date (str)
+                [8] tender_id (str) - may contain onclick attribute
+                [9] actions (str) - HTML with onclick="viewDetailTender('T...')"
 
         Returns:
             Dictionary with parsed tender data, or None if parsing fails

@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, patch
 
 from src.scrapers.api_scraper import APIScraper
-from src.utils.exceptions import NetworkException
+from src.utils.exceptions import NetworkException, ScraperException, RetryException
 
 
 class TestAPIScraper:
@@ -266,12 +266,12 @@ class TestAPIScraper:
         mock_post_response.status_code = 403
         mock_session.post.return_value = mock_post_response
 
-        # Should raise ScraperException after retries
+        # Should raise exception after retries (either ScraperException or RetryException)
         scraper = APIScraper()
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises((ScraperException, RetryException)) as exc_info:
             scraper.scrape_tender_list()
 
-        # Either ScraperException or RetryException is acceptable
+        # Verify error message contains relevant information
         assert "403 Forbidden" in str(exc_info.value) or "Max retries" in str(
             exc_info.value
         )
@@ -296,12 +296,12 @@ class TestAPIScraper:
         mock_post_response.json.return_value = {"error": "No data"}
         mock_session.post.return_value = mock_post_response
 
-        # Should raise exception after retries
+        # Should raise exception after retries (either ScraperException or RetryException)
         scraper = APIScraper()
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises((ScraperException, RetryException)) as exc_info:
             scraper.scrape_tender_list()
 
-        # Either ScraperException or RetryException is acceptable
+        # Verify error message contains relevant information
         assert "aaData" in str(exc_info.value) or "Max retries" in str(exc_info.value)
 
     @patch("src.scrapers.api_scraper.requests.Session")
