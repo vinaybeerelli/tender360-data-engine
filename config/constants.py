@@ -37,6 +37,16 @@ API_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 }
 
+# HTTP Headers for document downloads
+DOWNLOAD_HEADERS = {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://tender.telangana.gov.in/",
+    "X-Requested-With": "XMLHttpRequest",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+}
+
 # API Request payload (default parameters)
 API_PAYLOAD = {
     "sEcho": "1",
@@ -127,4 +137,3 @@ STATUS = {
     "parsing": "PARSING",
     "parsed": "PARSED",
 }
-
