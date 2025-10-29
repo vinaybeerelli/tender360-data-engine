@@ -8,6 +8,12 @@ import requests
 from requests.exceptions import RequestException, Timeout, ConnectionError
 
 from .base_scraper import BaseScraper
+from config.constants import (
+    API_HEADERS,
+    API_PAYLOAD,
+    TENDER_LIST_API,
+    TENDER_LIST_PAGE
+)
 from config.settings import Settings
 from src.utils.logger import log
 from src.utils.helpers import retry
@@ -98,6 +104,36 @@ class APIScraper(BaseScraper):
         """
         log.info("Establishing session...")
         self.session = requests.Session()
+        
+        # Visit main page to get JSESSIONID cookie
+        try:
+            url = self.settings.BASE_URL + TENDER_LIST_PAGE
+            log.info(f"Visiting main page: {url}")
+            
+            response = self.session.get(
+                url,
+                timeout=self.settings.REQUEST_TIMEOUT,
+                headers={
+                    "User-Agent": API_HEADERS["User-Agent"],
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": API_HEADERS["Accept-Language"],
+                }
+            )
+            
+            # Check if request was successful
+            response.raise_for_status()
+            
+            # Verify session cookie was set
+            if 'JSESSIONID' in self.session.cookies:
+                # Only log truncated cookie value for security
+                cookie_value = self.session.cookies['JSESSIONID']
+                log.info(f"Session established successfully. Cookie: JSESSIONID={cookie_value[:8]}...")
+            else:
+                log.warning("Session established but JSESSIONID cookie not found in response")
+                
+        except requests.exceptions.RequestException as e:
+            log.error(f"Failed to establish session: {e}")
+            raise
 
         # Visit main page to get JSESSIONID cookie
         main_page_url = self.settings.BASE_URL + "/TenderDetailsHome.html"
