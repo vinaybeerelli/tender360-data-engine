@@ -1,16 +1,32 @@
 """
 API-based scraper - Primary scraping method
-This module will be implemented in Issue #1
+Implements Issue #1: Fix API Scraper Session Management
 """
 
 from typing import List, Dict, Optional
 import requests
+import re
+from bs4 import BeautifulSoup
 
 from .base_scraper import BaseScraper
-from config.constants import API_HEADERS, API_PAYLOAD, TENDER_LIST_API
+
+import sys
+from pathlib import Path
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from config.constants import (
+    API_HEADERS, 
+    API_PAYLOAD, 
+    TENDER_LIST_API, 
+    TENDER_LIST_PAGE,
+    TENDER_DETAIL_PAGE
+)
 from config.settings import Settings
 from src.utils.logger import log
 from src.utils.helpers import retry
+from src.utils.helpers import retry, random_delay
+from src.utils.exceptions import ScraperException
 
 
 class APIScraper(BaseScraper):
@@ -18,6 +34,7 @@ class APIScraper(BaseScraper):
     API-based scraper using AJAX endpoints.
 
     This is the primary scraping method (faster and more reliable).
+    Implements proper session management for AWS Mumbai deployment.
     """
 
     def __init__(self, headless=True):
@@ -31,6 +48,7 @@ class APIScraper(BaseScraper):
         Establish session by visiting main page to get cookies.
 
         IMPORTANT: Must visit main page before calling API endpoint.
+        This prevents 403 errors on AWS Mumbai.
         """
         log.info("Establishing session...")
         self.session = requests.Session()
@@ -45,6 +63,10 @@ class APIScraper(BaseScraper):
             log.error(f"Failed to establish session: {e}")
             raise
 
+        # NOTE: When implementing, use API_HEADERS which includes X-Requested-With: XMLHttpRequest
+        # response = self.session.get(BASE_URL + "/TenderDetailsHome.html", headers=API_HEADERS)
+        pass
+    
     @retry(max_attempts=3)
     def scrape_tender_list(self, limit: Optional[int] = None) -> List[Dict]:
         """
@@ -113,6 +135,192 @@ class APIScraper(BaseScraper):
             log.error(f"Failed to scrape tender list: {e}")
             raise ScraperException(f"Scraping failed: {e}")
 
+        log.info(f"Scraping tender list (limit={limit})...")
+        
+        # This will be implemented to:
+        # 1. POST to API endpoint with API_HEADERS (includes X-Requested-With: XMLHttpRequest)
+        # 2. Parse JSON response
+        # 3. Extract tender data
+        # 4. Return list of tenders
+        
+        all_tenders = []
+        
+        try:
+            # Determine how many to fetch
+            display_length = min(limit or 100, 100)  # API max is 100 per request
+            
+            # Prepare payload
+            payload = API_PAYLOAD.copy()
+            payload['iDisplayLength'] = str(display_length)
+            payload['iDisplayStart'] = '0'
+            
+            # Make API request
+            api_url = self.settings.BASE_URL + TENDER_LIST_API
+            log.debug(f"POST {api_url} with display_length={display_length}")
+            
+            response = self.session.post(
+                api_url,
+                headers=API_HEADERS,
+                data=payload,
+                timeout=self.settings.REQUEST_TIMEOUT
+            )
+            
+            # Check response status
+            if response.status_code == 403:
+                log.error("Got 403 Forbidden - session may have expired")
+                raise ScraperException("403 Forbidden - please check session establishment")
+            
+            response.raise_for_status()
+            
+            # Parse JSON response
+            data = response.json()
+            
+            # Extract tender data from aaData array
+            if 'aaData' not in data:
+                log.error("No 'aaData' field in response")
+                raise ScraperException("Invalid API response format")
+            
+            tender_data = data['aaData']
+            
+            if not tender_data:
+                log.warning("No tenders found in response")
+                return []
+            
+            log.info(f"Received {len(tender_data)} tenders from API")
+            
+            # Parse each tender row
+            for idx, row in enumerate(tender_data):
+                if limit and len(all_tenders) >= limit:
+                    break
+                
+                try:
+                    tender = self._parse_tender_row(row, idx)
+                    if tender:
+                        all_tenders.append(tender)
+                except Exception as e:
+                    log.warning(f"Failed to parse tender at index {idx}: {e}")
+                    continue
+            
+            log.info(f"✓ Successfully parsed {len(all_tenders)} tenders")
+            return all_tenders
+            
+        except requests.exceptions.RequestException as e:
+            log.error(f"Network error during scraping: {e}")
+            raise ScraperException(f"Network error: {e}")
+        except Exception as e:
+            log.error(f"Error scraping tender list: {e}")
+            raise ScraperException(f"Scraping failed: {e}")
+    
+    def _parse_tender_row(self, row: List, index: int) -> Optional[Dict]:
+        """
+        Parse a single tender row from API response.
+        
+        Args:
+            row: List containing tender data (corresponds to table columns)
+            index: Row index for logging
+            
+        Returns:
+            Dictionary with tender information or None if parsing fails
+        """
+        try:
+            # Row structure based on TENDER_FIELDS mapping:
+            # 0: department, 1: notice_number, 2: category, 3: work_name,
+            # 4: tender_value, 5: published_date, 6: bid_start_date,
+            # 7: bid_close_date, 8: tender_id, 9: actions
+            
+            if len(row) < 10:
+                log.warning(f"Row {index} has insufficient columns: {len(row)}")
+                return None
+            
+            # Extract basic fields
+            tender = {
+                'department': self._clean_html(row[0]),
+                'notice_number': self._clean_html(row[1]),
+                'category': self._clean_html(row[2]),
+                'work_name': self._clean_html(row[3]),
+                'tender_value': self._clean_html(row[4]),
+                'published_date': self._clean_html(row[5]),
+                'bid_start_date': self._clean_html(row[6]),
+                'bid_close_date': self._clean_html(row[7]),
+                'tender_id': self._clean_html(row[8]),
+            }
+            
+            # Extract onclick parameters from actions column (if present)
+            actions_html = row[9] if len(row) > 9 else ''
+            onclick_params = self._extract_onclick_params(actions_html)
+            if onclick_params:
+                tender.update(onclick_params)
+            
+            log.debug(f"Parsed tender: {tender['notice_number']} - {tender['work_name'][:50]}")
+            
+            return tender
+            
+        except Exception as e:
+            log.warning(f"Error parsing row {index}: {e}")
+            return None
+    
+    def _clean_html(self, html_content: str) -> str:
+        """
+        Remove HTML tags and clean text content.
+        
+        Args:
+            html_content: HTML string
+            
+        Returns:
+            Cleaned text
+        """
+        if not html_content:
+            return ''
+        
+        # Parse with BeautifulSoup
+        soup = BeautifulSoup(str(html_content), 'html.parser')
+        text = soup.get_text(separator=' ', strip=True)
+        
+        # Remove extra whitespace
+        text = ' '.join(text.split())
+        
+        return text
+    
+    def _extract_onclick_params(self, actions_html: str) -> Dict[str, str]:
+        """
+        Extract parameters from onclick attribute in actions column.
+        
+        The onclick typically contains a function call like:
+        onclick="GetTenderInfo('tenderNo','mode','refNo')"
+        
+        Args:
+            actions_html: HTML content of actions column
+            
+        Returns:
+            Dictionary with extracted parameters
+        """
+        params = {}
+        
+        try:
+            # Look for onclick attribute with GetTenderInfo function call
+            # Pattern matches: GetTenderInfo('param1','param2','param3')
+            # Captures three quoted parameters separated by commas
+            pattern = r"""
+                onclick=[\"']           # onclick attribute start
+                GetTenderInfo\(         # Function name
+                ['\"]([^'\"]+)['\"],    # First parameter (tender number)
+                \s*['\"]([^'\"]+)['\"], # Second parameter (mode)
+                \s*['\"]([^'\"]+)['\"]  # Third parameter (reference number)
+            """
+            
+            match = re.search(pattern, str(actions_html), re.VERBOSE)
+            
+            if match:
+                params['onclick_param1'] = match.group(1)  # Tender number
+                params['onclick_param2'] = match.group(2)  # Mode
+                params['onclick_param3'] = match.group(3)  # Reference number
+                log.debug(f"Extracted onclick params: {params}")
+            
+        except Exception as e:
+            log.debug(f"Could not extract onclick params: {e}")
+        
+        return params
+    
     def scrape_tender_details(self, tender_id: str) -> Dict:
         """
         Scrape detailed information for a tender.
