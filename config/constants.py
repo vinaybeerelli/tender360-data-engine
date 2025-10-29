@@ -26,76 +26,128 @@ TENDER_FIELDS = {
 }
 
 # HTTP Headers for API scraping
+# Complete headers captured from browser DevTools for AJAX requests
+# These headers mimic a real browser to avoid 403 Forbidden errors
 API_HEADERS = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Host": "tender.telangana.gov.in",
     "Origin": "https://tender.telangana.gov.in",
     "Referer": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "X-Requested-With": "XMLHttpRequest",
+    "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"macOS"',
+}
+
+# HTTP Headers for document downloads
+DOWNLOAD_HEADERS = {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://tender.telangana.gov.in/",
     "X-Requested-With": "XMLHttpRequest",
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 }
 
 # API Request payload (default parameters)
+# DataTables server-side processing parameters (60 total)
+# - Base parameters (10): control pagination, sorting, searching
+# - Column-specific parameters (50): 5 params × 10 columns
 API_PAYLOAD = {
+    # Drawing counter - used by DataTables to ensure AJAX responses match requests
     "sEcho": "1",
+    
+    # Column configuration
     "iColumns": "10",
-    "sColumns": ",,,,,,,,",
+    "sColumns": "department,notice_number,category,work_name,tender_value,published_date,bid_start_date,bid_close_date,tender_id,actions",
+    
+    # Pagination
     "iDisplayStart": "0",
     "iDisplayLength": "10",
+    
+    # Column 0: department
     "mDataProp_0": "0",
     "sSearch_0": "",
     "bRegex_0": "false",
     "bSearchable_0": "true",
     "bSortable_0": "true",
+    
+    # Column 1: notice_number
     "mDataProp_1": "1",
     "sSearch_1": "",
     "bRegex_1": "false",
     "bSearchable_1": "true",
     "bSortable_1": "true",
+    
+    # Column 2: category
     "mDataProp_2": "2",
     "sSearch_2": "",
     "bRegex_2": "false",
     "bSearchable_2": "true",
     "bSortable_2": "true",
+    
+    # Column 3: work_name
     "mDataProp_3": "3",
     "sSearch_3": "",
     "bRegex_3": "false",
     "bSearchable_3": "true",
     "bSortable_3": "true",
+    
+    # Column 4: tender_value
     "mDataProp_4": "4",
     "sSearch_4": "",
     "bRegex_4": "false",
     "bSearchable_4": "true",
     "bSortable_4": "true",
+    
+    # Column 5: published_date
     "mDataProp_5": "5",
     "sSearch_5": "",
     "bRegex_5": "false",
     "bSearchable_5": "true",
     "bSortable_5": "true",
+    
+    # Column 6: bid_start_date
     "mDataProp_6": "6",
     "sSearch_6": "",
     "bRegex_6": "false",
     "bSearchable_6": "true",
     "bSortable_6": "true",
+    
+    # Column 7: bid_close_date
     "mDataProp_7": "7",
     "sSearch_7": "",
     "bRegex_7": "false",
     "bSearchable_7": "true",
     "bSortable_7": "true",
+    
+    # Column 8: tender_id (not sortable)
     "mDataProp_8": "8",
     "sSearch_8": "",
     "bRegex_8": "false",
     "bSearchable_8": "true",
     "bSortable_8": "false",
+    
+    # Column 9: actions (not sortable)
     "mDataProp_9": "9",
     "sSearch_9": "",
     "bRegex_9": "false",
     "bSearchable_9": "true",
     "bSortable_9": "false",
+    
+    # Global search
     "sSearch": "",
     "bRegex": "false",
+    
+    # Sorting configuration
     "iSortCol_0": "0",
     "sSortDir_0": "asc",
     "iSortingCols": "1",
@@ -127,4 +179,3 @@ STATUS = {
     "parsing": "PARSING",
     "parsed": "PARSED",
 }
-

@@ -9,6 +9,7 @@ from typing import Optional
 from src.utils.logger import log
 from src.utils.helpers import retry, random_delay
 from config.settings import Settings
+from config.constants import DOWNLOAD_HEADERS
 
 
 class DocumentDownloader:
@@ -36,7 +37,7 @@ class DocumentDownloader:
         
         # This will be implemented to:
         # 1. Create directory: data/downloads/{tender_id}/
-        # 2. Download file with retry logic
+        # 2. Download file with retry logic using DOWNLOAD_HEADERS (includes X-Requested-With)
         # 3. Verify file integrity
         # 4. Return file path
         

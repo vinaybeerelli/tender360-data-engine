@@ -51,35 +51,10 @@ class APIScraper(BaseScraper):
         """
         log.info("Establishing session...")
         self.session = requests.Session()
-        
-        try:
-            # Visit main page to get JSESSIONID cookie
-            main_url = self.settings.BASE_URL + TENDER_LIST_PAGE
-            log.debug(f"Visiting main page: {main_url}")
-            
-            response = self.session.get(
-                main_url,
-                headers={
-                    'User-Agent': API_HEADERS['User-Agent'],
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                },
-                timeout=self.settings.REQUEST_TIMEOUT
-            )
-            response.raise_for_status()
-            
-            # Verify session cookie was set
-            if 'JSESSIONID' in self.session.cookies:
-                log.info(f"✓ Session established successfully (JSESSIONID: {self.session.cookies.get('JSESSIONID')[:10]}...)")
-            else:
-                log.warning("No JSESSIONID cookie found, but proceeding anyway")
-            
-            # Small delay to mimic human behavior
-            random_delay(1, 2)
-            
-        except Exception as e:
-            log.error(f"Failed to establish session: {e}")
-            raise ScraperException(f"Session establishment failed: {e}")
+        # Visit main page to get JSESSIONID cookie
+        # NOTE: When implementing, use API_HEADERS which includes X-Requested-With: XMLHttpRequest
+        # response = self.session.get(BASE_URL + "/TenderDetailsHome.html", headers=API_HEADERS)
+        pass
     
     @retry(max_attempts=3)
     def scrape_tender_list(self, limit: Optional[int] = None) -> List[Dict]:
@@ -97,8 +72,11 @@ class APIScraper(BaseScraper):
         """
         log.info(f"Scraping tender list (limit={limit})...")
         
-        if not self.session:
-            self._establish_session()
+        # This will be implemented to:
+        # 1. POST to API endpoint with API_HEADERS (includes X-Requested-With: XMLHttpRequest)
+        # 2. Parse JSON response
+        # 3. Extract tender data
+        # 4. Return list of tenders
         
         all_tenders = []
         
