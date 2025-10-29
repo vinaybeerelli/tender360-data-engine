@@ -12,8 +12,8 @@ description: Data persistence
 
 **Assigned Issues:**
 - Issue #3: Database Schema & Models (P0)
-- Issue #6: Document Downloader (P2)
-- Issue #7: Document Parser (P2)
+- Issue #7: Document Downloader (P2)
+- Issue #8: Document Parser (P2)
 
 **Files Owned:**
 - `src/database/models.py`
