@@ -47,7 +47,39 @@ Testing requirements:
 - Integration test for full pipeline
 - 70%+ code coverage
 
-Current task: #9, #13, #15
+Current task: [Provide specifics]
 
 Deliver: Working pipeline + test suite
 ```
+
+**Efficiency Tips:**
+- Implement parallel processing (multiprocessing/asyncio)
+- Use queue-based architecture (producer-consumer)
+- Add circuit breakers for failing services
+- Implement checkpointing (resume on failure)
+- Use lazy evaluation where possible
+- Profile pipeline bottlenecks
+- Implement progress tracking and ETA
+
+**Before Starting:**
+1. Map out all pipeline dependencies
+2. Identify bottlenecks
+3. Plan error recovery strategy
+4. Design monitoring and alerting
+
+**Testing Strategy:**
+1. Unit test each pipeline stage
+2. Integration test full pipeline
+3. Test error scenarios and recovery
+4. Performance test with realistic data
+5. Stress test with high load
+
+**Performance Targets:**
+- Throughput: >100 tenders per hour
+- Error recovery: >90% success after retry
+- Pipeline completion: <30 minutes for 100 tenders
+- Test coverage: >70%
+
+**Reference Documentation:**
+- Workflow Guide: `.github/agents/WORKFLOW_GUIDE.md`
+- Security Policy: `.github/SECURITY.md`

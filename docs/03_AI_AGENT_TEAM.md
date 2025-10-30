@@ -222,7 +222,7 @@ Deliver: Working pipeline + test suite
 **Skills:** AWS, Linux, Bash, Monitoring
 
 **Assigned Issues:**
-- Issue #10: AWS Deployment Setup (P0)
+- Issue #5: AWS Deployment Setup (P0)
 - Issue #11: Cron Job Scheduling (P1)
 - Issue #12: Monitoring & Alerting (P1)
 - Issue #15: Documentation (shared)

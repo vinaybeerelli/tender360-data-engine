@@ -232,6 +232,65 @@ LOG_FILE=data/logs/scraper.log
 
 ---
 
+## 🗃️ Database Management
+
+### Initial Setup
+
+For new installations, use the setup script:
+
+```bash
+# Create database and tables
+python scripts/setup_db.py
+```
+
+### Migrations
+
+The project uses [Alembic](https://alembic.sqlalchemy.org/) for database migrations:
+
+```bash
+# Apply all pending migrations
+python scripts/migrate_db.py upgrade
+
+# Check current migration version
+python scripts/migrate_db.py current
+
+# View migration history
+python scripts/migrate_db.py history
+
+# Rollback one migration
+python scripts/migrate_db.py downgrade
+
+# Create a new migration after modifying models
+python scripts/migrate_db.py create "Add new column"
+```
+
+For detailed migration guide, see [migrations/README.md](migrations/README.md).
+
+### Database Schema
+
+The database includes the following tables:
+
+- **tenders**: Basic tender information (id, department, dates, etc.)
+- **tender_details**: Extended tender information (eligibility, terms)
+- **documents**: Document metadata (filename, download status, etc.)
+- **extracted_fields**: Parsed data from documents (EMD, fees, etc.)
+- **scrape_logs**: Audit trail for scraping sessions
+
+### Backup and Restore
+
+```bash
+# Backup SQLite database
+cp data/tender_scraper.db data/backups/tender_scraper_$(date +%Y%m%d).db
+
+# Backup PostgreSQL
+pg_dump -h hostname -U username dbname > backup.sql
+
+# Restore PostgreSQL
+psql -h hostname -U username dbname < backup.sql
+```
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions! This project uses an AI agent collaboration model.

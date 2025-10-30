@@ -146,6 +146,16 @@ class TestTenderDetailModel:
         db_session.add(detail2)
         with pytest.raises(IntegrityError):
             db_session.commit()
+    
+    def test_tender_detail_indexes(self):
+        """Test that required indexes exist on TenderDetail table."""
+        inspector = inspect(TenderDetail)
+        indexed_columns = set()
+        for idx in inspector.mapper.columns:
+            if idx.index or idx.unique:
+                indexed_columns.add(idx.name)
+        
+        assert "tender_id" in indexed_columns
 
 
 class TestDocumentModel:
@@ -204,6 +214,16 @@ class TestDocumentModel:
         db_session.commit()
         
         assert document.download_status == "PENDING"
+    
+    def test_document_indexes(self):
+        """Test that required indexes exist on Document table."""
+        inspector = inspect(Document)
+        indexed_columns = set()
+        for idx in inspector.mapper.columns:
+            if idx.index or idx.unique:
+                indexed_columns.add(idx.name)
+        
+        assert "tender_id" in indexed_columns
 
 
 class TestExtractedFieldModel:
@@ -261,6 +281,17 @@ class TestExtractedFieldModel:
         # Test document relationship
         assert field.document.filename == "test.pdf"
         assert field in document.extracted_fields
+    
+    def test_extracted_field_indexes(self):
+        """Test that required indexes exist on ExtractedField table."""
+        inspector = inspect(ExtractedField)
+        indexed_columns = set()
+        for idx in inspector.mapper.columns:
+            if idx.index or idx.unique:
+                indexed_columns.add(idx.name)
+        
+        assert "tender_id" in indexed_columns
+        assert "document_id" in indexed_columns
 
 
 class TestScrapeLogModel:

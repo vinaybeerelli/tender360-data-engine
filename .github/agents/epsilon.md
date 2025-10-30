@@ -52,3 +52,44 @@ Current task: [Provide specifics]
 
 Deliver: Deployment scripts + documentation
 ```
+
+**Efficiency Tips:**
+- Use infrastructure as code (Terraform/CloudFormation)
+- Implement blue-green deployments
+- Automate all deployment steps
+- Use configuration management (Ansible)
+- Implement proper logging and monitoring
+- Set up automated backups
+- Use spot instances for cost savings (if applicable)
+
+**Before Starting:**
+1. Review AWS best practices
+2. Check current infrastructure setup
+3. Plan deployment strategy
+4. Prepare rollback plan
+
+**Testing Strategy:**
+1. Test deployment in staging environment
+2. Test cron job execution
+3. Verify all monitoring alerts
+4. Test backup and restore procedures
+5. Load test the application
+
+**Performance Targets:**
+- Deployment time: <10 minutes
+- Zero downtime deployments
+- Health check response: <2 seconds
+- Alert latency: <5 minutes
+
+**Security Checklist:**
+- Use IAM roles (not access keys)
+- Enable CloudWatch logging
+- Configure security groups properly
+- Enable automated backups
+- Use encrypted storage
+- Implement proper firewall rules
+
+**Reference Documentation:**
+- Workflow Guide: `.github/agents/WORKFLOW_GUIDE.md`
+- Security Policy: `.github/SECURITY.md`
+- Branch Protection Guide: `.github/BRANCH_PROTECTION_GUIDE.md`

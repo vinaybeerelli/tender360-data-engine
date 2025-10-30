@@ -58,3 +58,28 @@ Current issue: [Provide specific issue details]
 
 Deliver: Python code + test results
 ```
+
+**Efficiency Tips:**
+- Use session pooling to avoid repeated session creation
+- Implement intelligent caching for repeat requests
+- Batch API calls where possible (respect rate limits)
+- Log performance metrics (response time, success rate)
+- Use async requests for parallel data fetching
+- Implement circuit breaker pattern for API failures
+
+**Before Starting:**
+1. Review `/config/constants.py` for API endpoints
+2. Check `.github/WORKFLOW_GUIDE.md` for development process
+3. Read existing code in `src/scrapers/api_scraper.py`
+4. Set up local testing environment
+
+**Testing Strategy:**
+1. Unit tests with mocked responses
+2. Integration tests with rate limiting
+3. Performance tests (measure response times)
+4. Error scenario tests (403, 500, timeout)
+
+**Reference Documentation:**
+- Workflow Guide: `.github/agents/WORKFLOW_GUIDE.md`
+- Security Policy: `.github/SECURITY.md`
+- Testing Standards: See WORKFLOW_GUIDE.md
