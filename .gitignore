@@ -41,6 +41,8 @@ ENV/
 data/logs/*.log
 data/downloads/*
 data/backups/*
+data/drivers/chromedriver*
+data/drivers/*.exe
 *.db
 *.sqlite
 *.sqlite3
