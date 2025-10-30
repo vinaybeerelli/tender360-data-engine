@@ -41,7 +41,7 @@ class TenderDetail(Base):
     __tablename__ = "tender_details"
     
     id = Column(Integer, primary_key=True, index=True)
-    tender_id = Column(String(100), ForeignKey("tenders.tender_id"), unique=True)
+    tender_id = Column(String(100), ForeignKey("tenders.tender_id"), unique=True, index=True)
     eligibility = Column(Text)
     general_terms = Column(Text)
     legal_terms = Column(Text)
@@ -61,7 +61,7 @@ class Document(Base):
     __tablename__ = "documents"
     
     id = Column(Integer, primary_key=True, index=True)
-    tender_id = Column(String(100), ForeignKey("tenders.tender_id"))
+    tender_id = Column(String(100), ForeignKey("tenders.tender_id"), index=True)
     filename = Column(String(255))
     file_path = Column(Text)
     file_type = Column(String(50))
@@ -83,8 +83,8 @@ class ExtractedField(Base):
     __tablename__ = "extracted_fields"
     
     id = Column(Integer, primary_key=True, index=True)
-    tender_id = Column(String(100), ForeignKey("tenders.tender_id"))
-    document_id = Column(Integer, ForeignKey("documents.id"))
+    tender_id = Column(String(100), ForeignKey("tenders.tender_id"), index=True)
+    document_id = Column(Integer, ForeignKey("documents.id"), index=True)
     field_name = Column(String(100))  # e.g., "emd", "tender_fee", "deadline"
     field_value = Column(Text)
     field_type = Column(String(50))  # e.g., "currency", "date", "text"
