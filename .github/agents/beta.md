@@ -39,3 +39,35 @@ Current task: [Provide specific task]
 
 Deliver: Selenium scraper with 95%+ reliability
 ```
+
+**Efficiency Tips:**
+- Reuse browser instance across multiple scrapes
+- Use headless mode for better performance
+- Implement smart wait strategies (explicit > implicit)
+- Cache page elements to avoid redundant lookups
+- Take screenshots only on errors (save disk space)
+- Close unused tabs/windows immediately
+- Use Chrome DevTools Protocol for advanced control
+
+**Before Starting:**
+1. Install Chrome and ChromeDriver
+2. Test undetected-chromedriver locally
+3. Review existing Selenium code
+4. Set up headless testing environment
+
+**Testing Strategy:**
+1. Test with and without headless mode
+2. Test window/tab switching logic
+3. Test JavaScript execution
+4. Test error recovery (page load failures)
+5. Memory leak testing (long-running sessions)
+
+**Performance Targets:**
+- Page load: <10 seconds
+- Element wait: Max 20 seconds
+- Memory usage: <500MB per instance
+- Browser restart: Every 50 pages
+
+**Reference Documentation:**
+- Workflow Guide: `.github/agents/WORKFLOW_GUIDE.md`
+- Security Policy: `.github/SECURITY.md`
