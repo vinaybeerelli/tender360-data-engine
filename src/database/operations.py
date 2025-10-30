@@ -14,11 +14,11 @@ from src.utils.exceptions import DatabaseException
 def create_tender(db: Session, tender_data: dict) -> Tender:
     """
     Create a new tender record.
-    
+
     Args:
         db: Database session
         tender_data: Dictionary with tender information
-        
+
     Returns:
         Created Tender object
     """
@@ -38,11 +38,11 @@ def create_tender(db: Session, tender_data: dict) -> Tender:
 def get_tender(db: Session, tender_id: str) -> Optional[Tender]:
     """
     Get tender by ID.
-    
+
     Args:
         db: Database session
         tender_id: Tender ID
-        
+
     Returns:
         Tender object or None
     """
@@ -52,42 +52,44 @@ def get_tender(db: Session, tender_id: str) -> Optional[Tender]:
 def update_tender(db: Session, tender_id: str, update_data: dict) -> Tender:
     """
     Update tender record.
-    
+
     Args:
         db: Database session
         tender_id: Tender ID
         update_data: Dictionary with fields to update
-        
+
     Returns:
         Updated Tender object
     """
     tender = get_tender(db, tender_id)
     if not tender:
         raise DatabaseException(f"Tender not found: {tender_id}")
-    
+
     for key, value in update_data.items():
         setattr(tender, key, value)
-    
+
     db.commit()
     db.refresh(tender)
     log.info(f"Updated tender: {tender_id}")
     return tender
 
 
-def save_tender_details(db: Session, tender_id: str, details_data: dict) -> TenderDetail:
+def save_tender_details(
+    db: Session, tender_id: str, details_data: dict
+) -> TenderDetail:
     """
     Save tender detail information.
-    
+
     Args:
         db: Database session
         tender_id: Tender ID
         details_data: Dictionary with detail information
-        
+
     Returns:
         Created TenderDetail object
     """
     try:
-        details_data['tender_id'] = tender_id
+        details_data["tender_id"] = tender_id
         details = TenderDetail(**details_data)
         db.add(details)
         db.commit()
@@ -103,17 +105,17 @@ def save_tender_details(db: Session, tender_id: str, details_data: dict) -> Tend
 def save_document(db: Session, tender_id: str, document_data: dict) -> Document:
     """
     Save document metadata.
-    
+
     Args:
         db: Database session
         tender_id: Tender ID
         document_data: Dictionary with document information
-        
+
     Returns:
         Created Document object
     """
     try:
-        document_data['tender_id'] = tender_id
+        document_data["tender_id"] = tender_id
         document = Document(**document_data)
         db.add(document)
         db.commit()
@@ -129,32 +131,34 @@ def save_document(db: Session, tender_id: str, document_data: dict) -> Document:
 def get_pending_downloads(db: Session) -> List[Document]:
     """
     Get documents pending download.
-    
+
     Args:
         db: Database session
-        
+
     Returns:
         List of Document objects with status PENDING
     """
     return db.query(Document).filter(Document.download_status == "PENDING").all()
 
 
-def save_extracted_field(db: Session, tender_id: str, document_id: int, field_data: dict) -> ExtractedField:
+def save_extracted_field(
+    db: Session, tender_id: str, document_id: int, field_data: dict
+) -> ExtractedField:
     """
     Save extracted field from document.
-    
+
     Args:
         db: Database session
         tender_id: Tender ID
         document_id: Document ID
         field_data: Dictionary with field information
-        
+
     Returns:
         Created ExtractedField object
     """
     try:
-        field_data['tender_id'] = tender_id
-        field_data['document_id'] = document_id
+        field_data["tender_id"] = tender_id
+        field_data["document_id"] = document_id
         field = ExtractedField(**field_data)
         db.add(field)
         db.commit()
@@ -169,11 +173,11 @@ def save_extracted_field(db: Session, tender_id: str, document_id: int, field_da
 def log_scrape_run(db: Session, log_data: dict) -> ScrapeLog:
     """
     Log scraping session.
-    
+
     Args:
         db: Database session
         log_data: Dictionary with log information
-        
+
     Returns:
         Created ScrapeLog object
     """
