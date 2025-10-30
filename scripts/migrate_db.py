@@ -33,6 +33,18 @@ def run_alembic_command(command: list) -> int:
         Exit code
     """
     try:
+        # Check if alembic is available
+        check_result = subprocess.run(
+            ["alembic", "--version"],
+            capture_output=True,
+            cwd=Path(__file__).parent.parent
+        )
+        
+        if check_result.returncode != 0:
+            log.error("Alembic is not installed or not in PATH")
+            print("Error: Alembic not found. Please install with: pip install alembic")
+            return 1
+        
         result = subprocess.run(
             ["alembic"] + command,
             cwd=Path(__file__).parent.parent,
@@ -48,6 +60,10 @@ def run_alembic_command(command: list) -> int:
             
         return result.returncode
         
+    except FileNotFoundError:
+        log.error("Alembic command not found")
+        print("Error: Alembic not found. Please install with: pip install alembic")
+        return 1
     except Exception as e:
         log.error(f"Failed to run alembic command: {e}")
         return 1

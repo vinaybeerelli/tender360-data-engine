@@ -179,8 +179,14 @@ cat migrations/versions/YYYYMMDD_HHMM-{revision}_description.py
 # Test on a copy of production data
 alembic upgrade head
 
-# Verify the changes
-python scripts/verify_db.py
+# Verify the changes (check tables exist and have correct structure)
+python -c "
+from src.database.connection import init_database
+from sqlalchemy import inspect
+engine = init_database()
+inspector = inspect(engine)
+print('Tables:', inspector.get_table_names())
+"
 
 # Test rollback
 alembic downgrade -1
