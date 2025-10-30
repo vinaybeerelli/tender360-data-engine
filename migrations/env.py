@@ -10,18 +10,30 @@ from alembic import context
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import our database models and settings
-from config.settings import Settings
-from src.database.connection import Base
-from src.database.models import Tender, TenderDetail, Document, ExtractedField, ScrapeLog
+# Import project settings and models
+try:
+    from config.settings import Settings
+    from src.database.connection import Base
+    from src.database.models import (
+        Tender, TenderDetail, Document, ExtractedField, ScrapeLog
+    )
+except ImportError as e:
+    print(f"Error: Failed to import required modules: {e}")
+    print("Please ensure you're running from the project root and all dependencies are installed.")
+    sys.exit(1)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Get database URL from settings
-settings = Settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Load database URL from settings
+try:
+    settings = Settings()
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+except Exception as e:
+    print(f"Error: Failed to initialize settings: {e}")
+    print("Please check your environment configuration and .env file.")
+    sys.exit(1)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
