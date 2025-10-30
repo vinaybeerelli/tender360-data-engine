@@ -1,19 +1,24 @@
 """
-Unit tests for database models
+Unit tests for database models.
+
+Tests for SQLAlchemy models, relationships, and database operations.
 """
 
 import pytest
 from datetime import datetime
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
 
-from src.database.models import Tender, TenderDetail, Document, ExtractedField, ScrapeLog
+from src.database.models import (
+    Tender, TenderDetail, Document, ExtractedField, ScrapeLog
+)
 from src.database.connection import Base
 
 
 @pytest.fixture
 def db_session():
-    """Create an in-memory database session for testing."""
+    """Create in-memory database session for testing."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
@@ -23,177 +28,198 @@ def db_session():
 
 
 class TestTenderModel:
-    """Test Tender model."""
+    """Tests for Tender model."""
     
     def test_create_tender(self, db_session):
         """Test creating a tender record."""
         tender = Tender(
-            tender_id="TN001",
+            tender_id="TEST001",
             department="Test Department",
-            notice_number="NOT001",
-            category="Construction",
-            work_name="Test Project",
-            tender_value="1000000",
+            notice_number="NOTICE001",
+            category="Works",
+            work_name="Test Work",
+            tender_value="100000",
             published_date="2024-01-01",
             bid_start_date="2024-01-05",
             bid_close_date="2024-01-15",
-            detail_url="https://example.com/tender/1"
+            detail_url="http://example.com/tender/TEST001"
         )
         db_session.add(tender)
         db_session.commit()
         
         assert tender.id is not None
-        assert tender.tender_id == "TN001"
+        assert tender.tender_id == "TEST001"
+        assert tender.work_name == "Test Work"
         assert tender.scraped_at is not None
         assert tender.last_updated is not None
     
-    def test_tender_unique_constraint(self, db_session):
+    def test_tender_id_unique_constraint(self, db_session):
         """Test that tender_id must be unique."""
-        tender1 = Tender(tender_id="TN001", work_name="Project 1")
+        tender1 = Tender(tender_id="TEST001", work_name="Work 1")
+        tender2 = Tender(tender_id="TEST001", work_name="Work 2")
+        
         db_session.add(tender1)
         db_session.commit()
         
-        tender2 = Tender(tender_id="TN001", work_name="Project 2")
         db_session.add(tender2)
-        
-        with pytest.raises(Exception):  # IntegrityError
+        with pytest.raises(IntegrityError):
             db_session.commit()
     
-    def test_tender_relationships(self, db_session):
-        """Test tender relationships."""
-        tender = Tender(tender_id="TN001", work_name="Test Project")
-        db_session.add(tender)
-        db_session.commit()
+    def test_tender_repr(self, db_session):
+        """Test tender string representation."""
+        tender = Tender(tender_id="TEST001", work_name="Test Work Name")
+        assert "TEST001" in repr(tender)
+        assert "Test Work" in repr(tender)
+    
+    def test_tender_indexes(self):
+        """Test that required indexes exist on Tender table."""
+        inspector = inspect(Tender)
+        indexed_columns = set()
+        for idx in inspector.mapper.columns:
+            if idx.index or idx.unique:
+                indexed_columns.add(idx.name)
         
-        # Test details relationship
-        details = TenderDetail(tender_id="TN001", eligibility="Test eligibility")
-        db_session.add(details)
-        db_session.commit()
-        
-        assert tender.details is not None
-        assert tender.details.eligibility == "Test eligibility"
-        
-        # Test documents relationship
-        doc = Document(tender_id="TN001", filename="test.pdf")
-        db_session.add(doc)
-        db_session.commit()
-        
-        assert len(tender.documents) == 1
-        assert tender.documents[0].filename == "test.pdf"
+        assert "tender_id" in indexed_columns
+        assert "published_date" in indexed_columns
+        assert "bid_close_date" in indexed_columns
 
 
 class TestTenderDetailModel:
-    """Test TenderDetail model."""
+    """Tests for TenderDetail model."""
     
     def test_create_tender_detail(self, db_session):
         """Test creating a tender detail record."""
-        # First create a tender
-        tender = Tender(tender_id="TN001", work_name="Test Project")
+        # Create parent tender first
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
         db_session.add(tender)
         db_session.commit()
         
-        # Create details
-        details = TenderDetail(
-            tender_id="TN001",
-            eligibility="Must have 5 years experience",
-            general_terms="Standard terms apply",
-            legal_terms="Legal terms",
-            technical_terms="Technical specifications",
-            submission_procedure="Online submission only"
+        # Create tender detail
+        detail = TenderDetail(
+            tender_id="TEST001",
+            eligibility="Test eligibility",
+            general_terms="Test general terms",
+            legal_terms="Test legal terms",
+            technical_terms="Test technical terms",
+            submission_procedure="Test submission procedure"
         )
-        db_session.add(details)
+        db_session.add(detail)
         db_session.commit()
         
-        assert details.id is not None
-        assert details.tender_id == "TN001"
-        assert details.scraped_at is not None
+        assert detail.id is not None
+        assert detail.tender_id == "TEST001"
+        assert detail.eligibility == "Test eligibility"
+        assert detail.scraped_at is not None
+    
+    def test_tender_detail_relationship(self, db_session):
+        """Test relationship between Tender and TenderDetail."""
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
+        detail = TenderDetail(
+            tender_id="TEST001",
+            eligibility="Test eligibility"
+        )
+        
+        db_session.add(tender)
+        db_session.add(detail)
+        db_session.commit()
+        
+        # Test forward relationship
+        assert tender.details is not None
+        assert tender.details.tender_id == "TEST001"
+        
+        # Test backward relationship
+        assert detail.tender is not None
+        assert detail.tender.tender_id == "TEST001"
     
     def test_tender_detail_unique_constraint(self, db_session):
-        """Test that tender_id in details must be unique."""
-        tender = Tender(tender_id="TN001", work_name="Test Project")
+        """Test that tender_id is unique in tender_details."""
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
         db_session.add(tender)
         db_session.commit()
         
-        details1 = TenderDetail(tender_id="TN001", eligibility="Test 1")
-        db_session.add(details1)
+        detail1 = TenderDetail(tender_id="TEST001", eligibility="Detail 1")
+        detail2 = TenderDetail(tender_id="TEST001", eligibility="Detail 2")
+        
+        db_session.add(detail1)
         db_session.commit()
         
-        details2 = TenderDetail(tender_id="TN001", eligibility="Test 2")
-        db_session.add(details2)
-        
-        with pytest.raises(Exception):  # IntegrityError
+        db_session.add(detail2)
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
 
 class TestDocumentModel:
-    """Test Document model."""
+    """Tests for Document model."""
     
     def test_create_document(self, db_session):
         """Test creating a document record."""
-        tender = Tender(tender_id="TN001", work_name="Test Project")
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
         db_session.add(tender)
         db_session.commit()
         
         document = Document(
-            tender_id="TN001",
-            filename="tender_doc.pdf",
-            file_path="/data/downloads/tender_doc.pdf",
-            file_type="PDF",
-            file_size=1024000,
-            download_url="https://example.com/doc.pdf",
-            download_status="DOWNLOADED",
-            downloaded_at=datetime.utcnow()
+            tender_id="TEST001",
+            filename="test.pdf",
+            file_path="/data/downloads/test.pdf",
+            file_type="pdf",
+            file_size=12345,
+            download_url="http://example.com/test.pdf",
+            download_status="PENDING"
         )
         db_session.add(document)
         db_session.commit()
         
         assert document.id is not None
-        assert document.tender_id == "TN001"
-        assert document.download_status == "DOWNLOADED"
+        assert document.tender_id == "TEST001"
+        assert document.filename == "test.pdf"
+        assert document.download_status == "PENDING"
     
-    def test_document_default_status(self, db_session):
-        """Test that document has default status."""
-        tender = Tender(tender_id="TN001", work_name="Test Project")
+    def test_document_relationship(self, db_session):
+        """Test relationship between Tender and Documents."""
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
+        doc1 = Document(tender_id="TEST001", filename="doc1.pdf")
+        doc2 = Document(tender_id="TEST001", filename="doc2.pdf")
+        
         db_session.add(tender)
+        db_session.add(doc1)
+        db_session.add(doc2)
         db_session.commit()
         
-        document = Document(tender_id="TN001", filename="test.pdf")
+        # Test forward relationship (one-to-many)
+        assert len(tender.documents) == 2
+        assert doc1 in tender.documents
+        assert doc2 in tender.documents
+        
+        # Test backward relationship
+        assert doc1.tender.tender_id == "TEST001"
+        assert doc2.tender.tender_id == "TEST001"
+    
+    def test_document_default_status(self, db_session):
+        """Test that document has default PENDING status."""
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
+        document = Document(tender_id="TEST001", filename="test.pdf")
+        
+        db_session.add(tender)
         db_session.add(document)
         db_session.commit()
         
         assert document.download_status == "PENDING"
-    
-    def test_multiple_documents_per_tender(self, db_session):
-        """Test that a tender can have multiple documents."""
-        tender = Tender(tender_id="TN001", work_name="Test Project")
-        db_session.add(tender)
-        db_session.commit()
-        
-        doc1 = Document(tender_id="TN001", filename="doc1.pdf")
-        doc2 = Document(tender_id="TN001", filename="doc2.pdf")
-        doc3 = Document(tender_id="TN001", filename="doc3.pdf")
-        
-        db_session.add_all([doc1, doc2, doc3])
-        db_session.commit()
-        
-        assert len(tender.documents) == 3
 
 
 class TestExtractedFieldModel:
-    """Test ExtractedField model."""
+    """Tests for ExtractedField model."""
     
     def test_create_extracted_field(self, db_session):
         """Test creating an extracted field record."""
-        tender = Tender(tender_id="TN001", work_name="Test Project")
-        db_session.add(tender)
-        db_session.commit()
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
+        document = Document(tender_id="TEST001", filename="test.pdf")
         
-        document = Document(tender_id="TN001", filename="test.pdf")
+        db_session.add(tender)
         db_session.add(document)
         db_session.commit()
         
         field = ExtractedField(
-            tender_id="TN001",
+            tender_id="TEST001",
             document_id=document.id,
             field_name="emd",
             field_value="50000",
@@ -204,64 +230,51 @@ class TestExtractedFieldModel:
         db_session.commit()
         
         assert field.id is not None
-        assert field.tender_id == "TN001"
+        assert field.tender_id == "TEST001"
         assert field.document_id == document.id
+        assert field.field_name == "emd"
         assert field.extracted_at is not None
     
-    def test_multiple_fields_per_document(self, db_session):
-        """Test that a document can have multiple extracted fields."""
-        tender = Tender(tender_id="TN001", work_name="Test Project")
-        db_session.add(tender)
-        db_session.commit()
+    def test_extracted_field_relationships(self, db_session):
+        """Test relationships between ExtractedField, Tender, and Document."""
+        tender = Tender(tender_id="TEST001", work_name="Test Work")
+        document = Document(tender_id="TEST001", filename="test.pdf")
+        field = ExtractedField(
+            tender_id="TEST001",
+            document_id=None,  # Will be set after document is saved
+            field_name="emd",
+            field_value="50000"
+        )
         
-        document = Document(tender_id="TN001", filename="test.pdf")
+        db_session.add(tender)
         db_session.add(document)
         db_session.commit()
         
-        fields = [
-            ExtractedField(
-                tender_id="TN001",
-                document_id=document.id,
-                field_name="emd",
-                field_value="50000",
-                field_type="currency"
-            ),
-            ExtractedField(
-                tender_id="TN001",
-                document_id=document.id,
-                field_name="tender_fee",
-                field_value="1000",
-                field_type="currency"
-            ),
-            ExtractedField(
-                tender_id="TN001",
-                document_id=document.id,
-                field_name="deadline",
-                field_value="2024-01-15",
-                field_type="date"
-            )
-        ]
-        
-        db_session.add_all(fields)
+        field.document_id = document.id
+        db_session.add(field)
         db_session.commit()
         
-        assert len(document.extracted_fields) == 3
-        assert len(tender.extracted_fields) == 3
+        # Test tender relationship
+        assert field.tender.tender_id == "TEST001"
+        assert field in tender.extracted_fields
+        
+        # Test document relationship
+        assert field.document.filename == "test.pdf"
+        assert field in document.extracted_fields
 
 
 class TestScrapeLogModel:
-    """Test ScrapeLog model."""
+    """Tests for ScrapeLog model."""
     
     def test_create_scrape_log(self, db_session):
         """Test creating a scrape log record."""
         log = ScrapeLog(
-            run_date=datetime.utcnow(),
             method="api",
             tenders_found=100,
             tenders_scraped=95,
             errors=5,
             status="SUCCESS",
-            notes="Scraping completed successfully"
+            notes="Test scraping session"
         )
         db_session.add(log)
         db_session.commit()
@@ -270,64 +283,92 @@ class TestScrapeLogModel:
         assert log.method == "api"
         assert log.tenders_found == 100
         assert log.tenders_scraped == 95
+        assert log.run_date is not None
     
-    def test_multiple_scrape_logs(self, db_session):
-        """Test creating multiple scrape log records."""
-        logs = [
-            ScrapeLog(method="api", tenders_found=100, tenders_scraped=100, status="SUCCESS"),
-            ScrapeLog(method="selenium", tenders_found=50, tenders_scraped=45, status="PARTIAL"),
-            ScrapeLog(method="hybrid", tenders_found=75, tenders_scraped=0, status="FAILED")
-        ]
-        
-        db_session.add_all(logs)
+    def test_scrape_log_repr(self, db_session):
+        """Test scrape log string representation."""
+        log = ScrapeLog(
+            method="api",
+            tenders_found=100,
+            tenders_scraped=95
+        )
+        db_session.add(log)
         db_session.commit()
         
-        all_logs = db_session.query(ScrapeLog).all()
-        assert len(all_logs) == 3
+        repr_str = repr(log)
+        assert "95" in repr_str
+        assert "100" in repr_str
 
 
-class TestDatabaseIndexes:
-    """Test database indexes."""
+class TestModelIntegration:
+    """Integration tests for multiple models."""
     
-    def test_tender_id_index(self, db_session):
-        """Test that tender_id has an index."""
-        # Create multiple tenders
-        for i in range(100):
-            tender = Tender(tender_id=f"TN{i:03d}", work_name=f"Project {i}")
-            db_session.add(tender)
+    def test_complete_data_flow(self, db_session):
+        """Test complete data flow from tender to extracted fields."""
+        # Create tender
+        tender = Tender(
+            tender_id="TEST001",
+            department="Test Dept",
+            work_name="Test Work"
+        )
+        db_session.add(tender)
         db_session.commit()
         
-        # Query by tender_id should be fast
-        result = db_session.query(Tender).filter(Tender.tender_id == "TN050").first()
-        assert result is not None
-        assert result.tender_id == "TN050"
-    
-    def test_published_date_index(self, db_session):
-        """Test that published_date has an index."""
-        for i in range(50):
-            tender = Tender(
-                tender_id=f"TN{i:03d}",
-                work_name=f"Project {i}",
-                published_date=f"2024-01-{(i % 30) + 1:02d}"
-            )
-            db_session.add(tender)
+        # Create tender details
+        detail = TenderDetail(
+            tender_id="TEST001",
+            eligibility="Test eligibility"
+        )
+        db_session.add(detail)
         db_session.commit()
         
-        # Query by published_date
-        results = db_session.query(Tender).filter(Tender.published_date == "2024-01-15").all()
-        assert len(results) > 0
-    
-    def test_bid_close_date_index(self, db_session):
-        """Test that bid_close_date has an index."""
-        for i in range(50):
-            tender = Tender(
-                tender_id=f"TN{i:03d}",
-                work_name=f"Project {i}",
-                bid_close_date=f"2024-02-{(i % 28) + 1:02d}"
-            )
-            db_session.add(tender)
+        # Create documents
+        doc1 = Document(
+            tender_id="TEST001",
+            filename="doc1.pdf",
+            download_status="DOWNLOADED"
+        )
+        doc2 = Document(
+            tender_id="TEST001",
+            filename="doc2.pdf",
+            download_status="DOWNLOADED"
+        )
+        db_session.add_all([doc1, doc2])
         db_session.commit()
         
-        # Query by bid_close_date
-        results = db_session.query(Tender).filter(Tender.bid_close_date == "2024-02-15").all()
-        assert len(results) > 0
+        # Create extracted fields
+        field1 = ExtractedField(
+            tender_id="TEST001",
+            document_id=doc1.id,
+            field_name="emd",
+            field_value="50000"
+        )
+        field2 = ExtractedField(
+            tender_id="TEST001",
+            document_id=doc2.id,
+            field_name="tender_fee",
+            field_value="1000"
+        )
+        db_session.add_all([field1, field2])
+        db_session.commit()
+        
+        # Create scrape log
+        log = ScrapeLog(
+            method="api",
+            tenders_found=1,
+            tenders_scraped=1,
+            errors=0,
+            status="SUCCESS"
+        )
+        db_session.add(log)
+        db_session.commit()
+        
+        # Verify all relationships
+        assert tender.details.eligibility == "Test eligibility"
+        assert len(tender.documents) == 2
+        assert len(tender.extracted_fields) == 2
+        
+        # Verify cascading
+        assert doc1.tender.tender_id == "TEST001"
+        assert field1.tender.tender_id == "TEST001"
+        assert field1.document.filename == "doc1.pdf"

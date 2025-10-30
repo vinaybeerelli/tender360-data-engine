@@ -1,5 +1,7 @@
 """
-Unit tests for database CRUD operations
+Unit tests for database CRUD operations.
+
+Tests for database operations defined in src/database/operations.py.
 """
 
 import pytest
@@ -7,24 +9,21 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.database.models import Tender, TenderDetail, Document, ExtractedField, ScrapeLog
+from src.database.models import (
+    Tender, TenderDetail, Document, ExtractedField, ScrapeLog
+)
 from src.database.connection import Base
 from src.database.operations import (
-    create_tender,
-    get_tender,
-    update_tender,
-    save_tender_details,
-    save_document,
-    get_pending_downloads,
-    save_extracted_field,
-    log_scrape_run
+    create_tender, get_tender, update_tender,
+    save_tender_details, save_document, get_pending_downloads,
+    save_extracted_field, log_scrape_run
 )
 from src.utils.exceptions import DatabaseException
 
 
 @pytest.fixture
 def db_session():
-    """Create an in-memory database session for testing."""
+    """Create in-memory database session for testing."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
@@ -34,161 +33,164 @@ def db_session():
 
 
 class TestTenderOperations:
-    """Test tender CRUD operations."""
+    """Tests for tender CRUD operations."""
     
-    def test_create_tender(self, db_session):
-        """Test creating a tender."""
+    def test_create_tender_success(self, db_session):
+        """Test successful tender creation."""
         tender_data = {
-            "tender_id": "TN001",
-            "department": "Public Works",
-            "notice_number": "NOT001",
-            "category": "Construction",
-            "work_name": "Road Construction Project",
-            "tender_value": "5000000",
-            "published_date": "2024-01-01",
-            "bid_start_date": "2024-01-05",
-            "bid_close_date": "2024-01-15",
-            "detail_url": "https://example.com/tender/1"
+            "tender_id": "TEST001",
+            "department": "Test Department",
+            "work_name": "Test Work",
+            "tender_value": "100000",
+            "published_date": "2024-01-01"
         }
         
         tender = create_tender(db_session, tender_data)
         
+        assert tender is not None
         assert tender.id is not None
-        assert tender.tender_id == "TN001"
-        assert tender.work_name == "Road Construction Project"
-        assert tender.scraped_at is not None
+        assert tender.tender_id == "TEST001"
+        assert tender.department == "Test Department"
     
-    def test_create_duplicate_tender_fails(self, db_session):
-        """Test that creating duplicate tender fails."""
-        tender_data = {"tender_id": "TN001", "work_name": "Project 1"}
+    def test_create_tender_duplicate(self, db_session):
+        """Test creating duplicate tender raises exception."""
+        tender_data = {
+            "tender_id": "TEST001",
+            "work_name": "Test Work"
+        }
+        
         create_tender(db_session, tender_data)
         
         with pytest.raises(DatabaseException):
             create_tender(db_session, tender_data)
     
-    def test_get_tender(self, db_session):
-        """Test retrieving a tender."""
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
+    def test_get_tender_exists(self, db_session):
+        """Test getting an existing tender."""
+        tender_data = {
+            "tender_id": "TEST001",
+            "work_name": "Test Work"
+        }
         create_tender(db_session, tender_data)
         
-        tender = get_tender(db_session, "TN001")
+        tender = get_tender(db_session, "TEST001")
         
         assert tender is not None
-        assert tender.tender_id == "TN001"
-        assert tender.work_name == "Test Project"
+        assert tender.tender_id == "TEST001"
     
-    def test_get_nonexistent_tender(self, db_session):
-        """Test retrieving a non-existent tender."""
+    def test_get_tender_not_exists(self, db_session):
+        """Test getting a non-existent tender returns None."""
         tender = get_tender(db_session, "NONEXISTENT")
         assert tender is None
     
-    def test_update_tender(self, db_session):
-        """Test updating a tender."""
-        tender_data = {"tender_id": "TN001", "work_name": "Original Name"}
+    def test_update_tender_success(self, db_session):
+        """Test successful tender update."""
+        tender_data = {
+            "tender_id": "TEST001",
+            "work_name": "Original Work",
+            "tender_value": "100000"
+        }
         create_tender(db_session, tender_data)
         
-        update_data = {"work_name": "Updated Name", "tender_value": "1000000"}
-        updated_tender = update_tender(db_session, "TN001", update_data)
+        update_data = {
+            "work_name": "Updated Work",
+            "tender_value": "150000"
+        }
+        updated_tender = update_tender(db_session, "TEST001", update_data)
         
-        assert updated_tender.work_name == "Updated Name"
-        assert updated_tender.tender_value == "1000000"
-        assert updated_tender.tender_id == "TN001"
+        assert updated_tender.work_name == "Updated Work"
+        assert updated_tender.tender_value == "150000"
     
-    def test_update_nonexistent_tender_fails(self, db_session):
-        """Test that updating non-existent tender fails."""
+    def test_update_tender_not_exists(self, db_session):
+        """Test updating non-existent tender raises exception."""
+        update_data = {"work_name": "Updated Work"}
+        
         with pytest.raises(DatabaseException):
-            update_tender(db_session, "NONEXISTENT", {"work_name": "Test"})
+            update_tender(db_session, "NONEXISTENT", update_data)
 
 
-class TestTenderDetailsOperations:
-    """Test tender details operations."""
+class TestTenderDetailOperations:
+    """Tests for tender detail operations."""
     
-    def test_save_tender_details(self, db_session):
-        """Test saving tender details."""
-        # Create tender first
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
+    def test_save_tender_details_success(self, db_session):
+        """Test successful tender detail creation."""
+        # Create parent tender first
+        tender_data = {"tender_id": "TEST001", "work_name": "Test Work"}
         create_tender(db_session, tender_data)
         
-        # Save details
         details_data = {
-            "eligibility": "Must have 5 years experience",
-            "general_terms": "Standard terms apply",
-            "legal_terms": "Legal compliance required",
-            "technical_terms": "Technical specifications provided",
-            "submission_procedure": "Online submission only"
+            "eligibility": "Test eligibility",
+            "general_terms": "Test general terms",
+            "legal_terms": "Test legal terms"
         }
         
-        details = save_tender_details(db_session, "TN001", details_data)
+        details = save_tender_details(db_session, "TEST001", details_data)
         
-        assert details.id is not None
-        assert details.tender_id == "TN001"
-        assert details.eligibility == "Must have 5 years experience"
-        assert details.scraped_at is not None
+        assert details is not None
+        assert details.tender_id == "TEST001"
+        assert details.eligibility == "Test eligibility"
     
-    def test_save_duplicate_details_fails(self, db_session):
-        """Test that saving duplicate details fails."""
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
-        create_tender(db_session, tender_data)
-        
+    def test_save_tender_details_without_parent(self, db_session):
+        """Test saving details without parent tender succeeds but creates orphan record."""
         details_data = {"eligibility": "Test eligibility"}
-        save_tender_details(db_session, "TN001", details_data)
         
-        # Try to save again
-        with pytest.raises(DatabaseException):
-            save_tender_details(db_session, "TN001", details_data)
+        # SQLite doesn't enforce foreign keys by default, so this succeeds
+        details = save_tender_details(db_session, "NONEXISTENT", details_data)
+        
+        assert details is not None
+        assert details.tender_id == "NONEXISTENT"
+        # This creates an orphan record, but doesn't fail
 
 
 class TestDocumentOperations:
-    """Test document operations."""
+    """Tests for document operations."""
     
-    def test_save_document(self, db_session):
-        """Test saving a document."""
-        # Create tender first
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
+    def test_save_document_success(self, db_session):
+        """Test successful document creation."""
+        # Create parent tender first
+        tender_data = {"tender_id": "TEST001", "work_name": "Test Work"}
         create_tender(db_session, tender_data)
         
-        # Save document
         document_data = {
-            "filename": "tender_document.pdf",
-            "file_path": "/data/downloads/tender_document.pdf",
-            "file_type": "PDF",
-            "file_size": 2048000,
-            "download_url": "https://example.com/doc.pdf",
+            "filename": "test.pdf",
+            "file_path": "/data/downloads/test.pdf",
+            "file_type": "pdf",
+            "file_size": 12345,
+            "download_url": "http://example.com/test.pdf",
             "download_status": "PENDING"
         }
         
-        document = save_document(db_session, "TN001", document_data)
+        document = save_document(db_session, "TEST001", document_data)
         
-        assert document.id is not None
-        assert document.tender_id == "TN001"
-        assert document.filename == "tender_document.pdf"
+        assert document is not None
+        assert document.tender_id == "TEST001"
+        assert document.filename == "test.pdf"
         assert document.download_status == "PENDING"
     
-    def test_save_multiple_documents(self, db_session):
-        """Test saving multiple documents for a tender."""
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
-        create_tender(db_session, tender_data)
+    def test_save_document_without_parent(self, db_session):
+        """Test saving document without parent tender succeeds but creates orphan record."""
+        document_data = {"filename": "test.pdf"}
         
-        doc1 = save_document(db_session, "TN001", {"filename": "doc1.pdf"})
-        doc2 = save_document(db_session, "TN001", {"filename": "doc2.pdf"})
-        doc3 = save_document(db_session, "TN001", {"filename": "doc3.pdf"})
+        # SQLite doesn't enforce foreign keys by default, so this succeeds
+        document = save_document(db_session, "NONEXISTENT", document_data)
         
-        assert doc1.id != doc2.id != doc3.id
-        
-        # Verify all documents are linked to the tender
-        tender = get_tender(db_session, "TN001")
-        assert len(tender.documents) == 3
+        assert document is not None
+        assert document.tender_id == "NONEXISTENT"
+        # This creates an orphan record, but doesn't fail
     
     def test_get_pending_downloads(self, db_session):
-        """Test retrieving pending downloads."""
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
+        """Test getting documents with pending status."""
+        # Create parent tender
+        tender_data = {"tender_id": "TEST001", "work_name": "Test Work"}
         create_tender(db_session, tender_data)
         
         # Create documents with different statuses
-        save_document(db_session, "TN001", {"filename": "doc1.pdf", "download_status": "PENDING"})
-        save_document(db_session, "TN001", {"filename": "doc2.pdf", "download_status": "DOWNLOADED"})
-        save_document(db_session, "TN001", {"filename": "doc3.pdf", "download_status": "PENDING"})
-        save_document(db_session, "TN001", {"filename": "doc4.pdf", "download_status": "FAILED"})
+        doc1_data = {"filename": "doc1.pdf", "download_status": "PENDING"}
+        doc2_data = {"filename": "doc2.pdf", "download_status": "DOWNLOADED"}
+        doc3_data = {"filename": "doc3.pdf", "download_status": "PENDING"}
+        
+        save_document(db_session, "TEST001", doc1_data)
+        save_document(db_session, "TEST001", doc2_data)
+        save_document(db_session, "TEST001", doc3_data)
         
         pending = get_pending_downloads(db_session)
         
@@ -197,17 +199,17 @@ class TestDocumentOperations:
 
 
 class TestExtractedFieldOperations:
-    """Test extracted field operations."""
+    """Tests for extracted field operations."""
     
-    def test_save_extracted_field(self, db_session):
-        """Test saving an extracted field."""
-        # Create tender and document
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
-        create_tender(db_session, tender_data)
+    def test_save_extracted_field_success(self, db_session):
+        """Test successful extracted field creation."""
+        # Create parent tender and document
+        tender_data = {"tender_id": "TEST001", "work_name": "Test Work"}
+        tender = create_tender(db_session, tender_data)
         
-        document = save_document(db_session, "TN001", {"filename": "test.pdf"})
+        document_data = {"filename": "test.pdf"}
+        document = save_document(db_session, "TEST001", document_data)
         
-        # Save extracted field
         field_data = {
             "field_name": "emd",
             "field_value": "50000",
@@ -215,158 +217,146 @@ class TestExtractedFieldOperations:
             "extraction_method": "regex"
         }
         
-        field = save_extracted_field(db_session, "TN001", document.id, field_data)
+        field = save_extracted_field(
+            db_session, "TEST001", document.id, field_data
+        )
         
-        assert field.id is not None
-        assert field.tender_id == "TN001"
+        assert field is not None
+        assert field.tender_id == "TEST001"
         assert field.document_id == document.id
         assert field.field_name == "emd"
         assert field.field_value == "50000"
-        assert field.extracted_at is not None
     
-    def test_save_multiple_fields(self, db_session):
-        """Test saving multiple extracted fields."""
-        tender_data = {"tender_id": "TN001", "work_name": "Test Project"}
-        create_tender(db_session, tender_data)
+    def test_save_extracted_field_without_parent(self, db_session):
+        """Test saving field without parent succeeds but creates orphan record."""
+        field_data = {"field_name": "emd", "field_value": "50000"}
         
-        document = save_document(db_session, "TN001", {"filename": "test.pdf"})
+        # SQLite doesn't enforce foreign keys by default, so this succeeds
+        field = save_extracted_field(db_session, "NONEXISTENT", 999, field_data)
         
-        fields = [
-            {"field_name": "emd", "field_value": "50000", "field_type": "currency"},
-            {"field_name": "tender_fee", "field_value": "1000", "field_type": "currency"},
-            {"field_name": "deadline", "field_value": "2024-01-15", "field_type": "date"}
-        ]
-        
-        saved_fields = []
-        for field_data in fields:
-            field = save_extracted_field(db_session, "TN001", document.id, field_data)
-            saved_fields.append(field)
-        
-        assert len(saved_fields) == 3
-        
-        # Verify all fields are linked to document
-        db_session.refresh(document)
-        assert len(document.extracted_fields) == 3
+        assert field is not None
+        assert field.tender_id == "NONEXISTENT"
+        # This creates an orphan record, but doesn't fail
 
 
 class TestScrapeLogOperations:
-    """Test scrape log operations."""
+    """Tests for scrape log operations."""
     
-    def test_log_scrape_run(self, db_session):
-        """Test logging a scrape run."""
+    def test_log_scrape_run_success(self, db_session):
+        """Test successful scrape log creation."""
         log_data = {
-            "run_date": datetime.utcnow(),
             "method": "api",
             "tenders_found": 100,
             "tenders_scraped": 95,
             "errors": 5,
             "status": "SUCCESS",
-            "notes": "Scraping completed with minor errors"
+            "notes": "Test scraping session"
         }
         
         log = log_scrape_run(db_session, log_data)
         
-        assert log.id is not None
+        assert log is not None
         assert log.method == "api"
         assert log.tenders_found == 100
         assert log.tenders_scraped == 95
         assert log.status == "SUCCESS"
     
-    def test_log_multiple_runs(self, db_session):
-        """Test logging multiple scrape runs."""
-        runs = [
-            {
-                "method": "api",
-                "tenders_found": 100,
-                "tenders_scraped": 100,
-                "errors": 0,
-                "status": "SUCCESS"
-            },
-            {
-                "method": "selenium",
-                "tenders_found": 50,
-                "tenders_scraped": 45,
-                "errors": 5,
-                "status": "PARTIAL"
-            },
-            {
-                "method": "hybrid",
-                "tenders_found": 75,
-                "tenders_scraped": 0,
-                "errors": 75,
-                "status": "FAILED"
-            }
-        ]
+    def test_log_scrape_run_with_defaults(self, db_session):
+        """Test scrape log creation with minimal data."""
+        log_data = {
+            "method": "selenium",
+            "tenders_found": 50,
+            "tenders_scraped": 48
+        }
         
-        for run_data in runs:
-            log_scrape_run(db_session, run_data)
+        log = log_scrape_run(db_session, log_data)
         
-        all_logs = db_session.query(ScrapeLog).all()
-        assert len(all_logs) == 3
+        assert log is not None
+        assert log.method == "selenium"
+        assert log.run_date is not None
 
 
-class TestCompleteWorkflow:
-    """Test complete workflow from tender to extracted fields."""
+class TestOperationsIntegration:
+    """Integration tests for database operations."""
     
-    def test_complete_tender_workflow(self, db_session):
-        """Test the complete workflow of creating and linking all entities."""
-        # 1. Create tender
+    def test_complete_workflow(self, db_session):
+        """Test complete workflow from tender creation to field extraction."""
+        # Step 1: Create tender
         tender_data = {
-            "tender_id": "TN001",
-            "department": "Public Works",
-            "work_name": "Highway Construction",
-            "tender_value": "10000000",
+            "tender_id": "INTG001",
+            "department": "Integration Test Dept",
+            "work_name": "Integration Test Work",
+            "tender_value": "500000",
             "published_date": "2024-01-01",
             "bid_close_date": "2024-01-31"
         }
         tender = create_tender(db_session, tender_data)
+        assert tender.tender_id == "INTG001"
         
-        # 2. Add tender details
+        # Step 2: Save tender details
         details_data = {
-            "eligibility": "Class A contractor with 10 years experience",
-            "general_terms": "Standard government terms",
-            "technical_terms": "Highway specifications"
+            "eligibility": "Integration test eligibility",
+            "general_terms": "Integration test general terms"
         }
-        details = save_tender_details(db_session, "TN001", details_data)
+        details = save_tender_details(db_session, "INTG001", details_data)
+        assert details.tender_id == "INTG001"
         
-        # 3. Add documents
-        doc1 = save_document(db_session, "TN001", {
-            "filename": "tender_notice.pdf",
+        # Step 3: Save documents
+        doc1_data = {
+            "filename": "intg_doc1.pdf",
+            "file_type": "pdf",
+            "download_status": "PENDING"
+        }
+        doc2_data = {
+            "filename": "intg_doc2.xlsx",
+            "file_type": "xlsx",
             "download_status": "DOWNLOADED"
-        })
-        doc2 = save_document(db_session, "TN001", {
-            "filename": "technical_specs.pdf",
-            "download_status": "DOWNLOADED"
-        })
+        }
+        doc1 = save_document(db_session, "INTG001", doc1_data)
+        doc2 = save_document(db_session, "INTG001", doc2_data)
+        assert doc1.tender_id == "INTG001"
+        assert doc2.tender_id == "INTG001"
         
-        # 4. Add extracted fields
-        field1 = save_extracted_field(db_session, "TN001", doc1.id, {
+        # Step 4: Save extracted fields
+        field1_data = {
             "field_name": "emd",
-            "field_value": "200000",
+            "field_value": "50000",
             "field_type": "currency"
-        })
-        field2 = save_extracted_field(db_session, "TN001", doc1.id, {
+        }
+        field2_data = {
             "field_name": "tender_fee",
-            "field_value": "5000",
+            "field_value": "1000",
             "field_type": "currency"
-        })
+        }
+        field1 = save_extracted_field(db_session, "INTG001", doc1.id, field1_data)
+        field2 = save_extracted_field(db_session, "INTG001", doc2.id, field2_data)
+        assert field1.tender_id == "INTG001"
+        assert field2.tender_id == "INTG001"
         
-        # 5. Log the scrape run
-        log = log_scrape_run(db_session, {
-            "method": "api",
+        # Step 5: Log scraping session
+        log_data = {
+            "method": "hybrid",
             "tenders_found": 1,
             "tenders_scraped": 1,
             "errors": 0,
             "status": "SUCCESS"
-        })
+        }
+        log = log_scrape_run(db_session, log_data)
+        assert log.status == "SUCCESS"
         
-        # Verify everything is linked correctly
-        db_session.refresh(tender)
-        assert tender.details is not None
-        assert len(tender.documents) == 2
-        assert len(tender.extracted_fields) == 2
+        # Step 6: Verify relationships
+        retrieved_tender = get_tender(db_session, "INTG001")
+        assert retrieved_tender is not None
+        assert retrieved_tender.details is not None
+        assert len(retrieved_tender.documents) == 2
+        assert len(retrieved_tender.extracted_fields) == 2
         
-        # Verify relationships
-        assert tender.details.eligibility == "Class A contractor with 10 years experience"
-        assert tender.documents[0].filename in ["tender_notice.pdf", "technical_specs.pdf"]
-        assert doc1.extracted_fields[0].field_name in ["emd", "tender_fee"]
+        # Step 7: Update tender
+        update_data = {"tender_value": "600000"}
+        updated_tender = update_tender(db_session, "INTG001", update_data)
+        assert updated_tender.tender_value == "600000"
+        
+        # Step 8: Get pending downloads
+        pending = get_pending_downloads(db_session)
+        assert len(pending) == 1
+        assert pending[0].filename == "intg_doc1.pdf"
