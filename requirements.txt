@@ -27,4 +27,5 @@ uvicorn==0.24.0
 
 # Logging and monitoring
 loguru==0.7.2
+psutil==5.9.6
 
