@@ -10,7 +10,7 @@ pytest-asyncio==0.21.1
 black==23.12.1
 flake8==6.1.0
 isort==5.13.2
-mypy==1.7.1
+mypy==1.18.2
 
 # Documentation
 mkdocs==1.5.3
