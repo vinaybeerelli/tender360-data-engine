@@ -60,8 +60,14 @@ LOG_LEVEL=INFO
 ### 5. Initialize Database
 
 ```bash
+# First time setup or normal initialization
 python scripts/setup_db.py
+
+# Force recreation (drops and recreates all tables)
+python scripts/setup_db.py --force
 ```
+
+**Note:** The database uses Alembic for migrations. See `migrations/README.md` for advanced usage.
 
 ### 6. Test the Scraper
 
@@ -122,10 +128,15 @@ source venv/bin/activate
 
 ### Issue: Database errors
 
-**Solution:** Reinitialize database
+**Solution:** Reinitialize database using the force flag
 ```bash
-rm data/tender_scraper.db
-python scripts/setup_db.py
+python scripts/setup_db.py --force
+```
+
+Or use Alembic commands:
+```bash
+alembic downgrade base
+alembic upgrade head
 ```
 
 ### Issue: Chrome driver errors
