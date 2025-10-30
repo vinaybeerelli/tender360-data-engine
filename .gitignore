@@ -41,6 +41,7 @@ ENV/
 data/logs/*.log
 data/downloads/*
 data/backups/*
+data/drivers/*
 *.db
 *.sqlite
 *.sqlite3

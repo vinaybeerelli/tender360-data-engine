@@ -3,8 +3,11 @@ Selenium-based scraper - Fallback method
 Browser automation using undetected-chromedriver
 """
 
+import os
+import shutil
 import time
 import random
+from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime
 
@@ -54,7 +57,48 @@ class SeleniumScraper(BaseScraper):
         self.driver = None
         self.screenshot_dir = self.settings.DATA_DIR / "screenshots"
         self.screenshot_dir.mkdir(parents=True, exist_ok=True)
+        self.driver_dir = self.settings.DATA_DIR / "drivers"
+        self.driver_dir.mkdir(parents=True, exist_ok=True)
+        self._setup_chromedriver()
         self._init_driver()
+
+    def _setup_chromedriver(self):
+        """
+        Setup local chromedriver for undetected-chromedriver to patch.
+        
+        undetected-chromedriver needs to patch the chromedriver binary to avoid detection.
+        This method ensures we have a writable copy in the data/drivers directory.
+        """
+        local_driver_path = self.driver_dir / "chromedriver"
+        
+        # If local driver already exists, use it
+        if local_driver_path.exists():
+            log.debug(f"Using existing chromedriver at: {local_driver_path}")
+            self.driver_executable_path = str(local_driver_path)
+            return
+        
+        # Try to find system chromedriver
+        system_driver = shutil.which("chromedriver")
+        if system_driver:
+            log.info(f"Found system chromedriver at: {system_driver}")
+            log.info(f"Copying to local directory: {local_driver_path}")
+            
+            try:
+                shutil.copy2(system_driver, local_driver_path)
+                local_driver_path.chmod(0o755)  # Make executable
+                log.info("Chromedriver setup successful")
+                self.driver_executable_path = str(local_driver_path)
+                return
+            except Exception as e:
+                log.warning(f"Failed to copy chromedriver: {e}")
+        
+        # If no system driver found, let undetected-chromedriver try to download it
+        # This will fail in environments without internet access, but we document it
+        log.warning(
+            "No system chromedriver found. undetected-chromedriver will attempt to "
+            "download it automatically. This requires internet access."
+        )
+        self.driver_executable_path = None
 
     def _init_driver(self):
         """Initialize Chrome driver with undetected-chromedriver."""
@@ -82,9 +126,23 @@ class SeleniumScraper(BaseScraper):
             )
             options.add_argument(f"user-agent={user_agent}")
 
-            # Auto-detect Chrome version for better compatibility
-            # version_main=None allows auto-detection of installed Chrome
-            self.driver = uc.Chrome(options=options, version_main=None, use_subprocess=True)
+            # Create driver with explicit path if available
+            # This avoids undetected-chromedriver trying to download from internet
+            driver_kwargs = {
+                "options": options,
+                "use_subprocess": True,
+            }
+            
+            # Use local chromedriver if available
+            if self.driver_executable_path:
+                driver_kwargs["driver_executable_path"] = self.driver_executable_path
+                log.info(f"Using chromedriver at: {self.driver_executable_path}")
+            else:
+                # Let undetected-chromedriver auto-detect (requires internet)
+                driver_kwargs["version_main"] = None
+                log.info("Auto-detecting Chrome version (requires internet access)")
+            
+            self.driver = uc.Chrome(**driver_kwargs)
             self.driver.set_page_load_timeout(60)
 
             log.info("Chrome driver initialized successfully")
