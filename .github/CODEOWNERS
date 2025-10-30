@@ -1,0 +1,42 @@
+# Code Owners - AI Agent Team Structure
+# This file defines which AI agents are responsible for which files
+# Format: path/to/files @github-username-or-team
+
+# Global owner - Project Manager
+* @vinaybeerelli
+
+# Agent ALPHA - API Scraping Specialist
+/src/scrapers/api_scraper.py @vinaybeerelli
+/src/scrapers/base_scraper.py @vinaybeerelli
+/config/constants.py @vinaybeerelli
+
+# Agent BETA - Browser Automation Expert
+/src/scrapers/selenium_scraper.py @vinaybeerelli
+/src/scrapers/hybrid_scraper.py @vinaybeerelli
+
+# Agent GAMMA - Database Architect
+/src/database/ @vinaybeerelli
+/src/services/downloader.py @vinaybeerelli
+/src/services/parser.py @vinaybeerelli
+
+# Agent DELTA - Pipeline Engineer
+/src/pipeline/ @vinaybeerelli
+/tests/ @vinaybeerelli
+/pytest.ini @vinaybeerelli
+
+# Agent EPSILON - DevOps Engineer
+/scripts/ @vinaybeerelli
+/docs/04_DEPLOYMENT.md @vinaybeerelli
+/docs/05_DEPLOYMENT.md @vinaybeerelli
+/.github/workflows/ @vinaybeerelli
+
+# Configuration files - Require review
+/requirements.txt @vinaybeerelli
+/requirements-dev.txt @vinaybeerelli
+/.github/ @vinaybeerelli
+/.gitignore @vinaybeerelli
+
+# Documentation - Shared responsibility
+/docs/ @vinaybeerelli
+/README.md @vinaybeerelli
+
