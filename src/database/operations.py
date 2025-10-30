@@ -188,3 +188,77 @@ def log_scrape_run(db: Session, log_data: dict) -> ScrapeLog:
         log.error(f"Failed to log scrape run: {e}")
         raise DatabaseException(f"Failed to log scrape run: {e}")
 
+
+def get_tenders_by_department(db: Session, department: str) -> List[Tender]:
+    """
+    Get all tenders for a specific department.
+    
+    Args:
+        db: Database session
+        department: Department name
+        
+    Returns:
+        List of Tender objects
+    """
+    return db.query(Tender).filter(Tender.department == department).all()
+
+
+def get_tenders_by_date_range(db: Session, start_date: str, end_date: str) -> List[Tender]:
+    """
+    Get tenders published within a date range.
+    
+    Args:
+        db: Database session
+        start_date: Start date (YYYY-MM-DD format)
+        end_date: End date (YYYY-MM-DD format)
+        
+    Returns:
+        List of Tender objects
+    """
+    return db.query(Tender).filter(
+        Tender.published_date >= start_date,
+        Tender.published_date <= end_date
+    ).all()
+
+
+def get_documents_by_status(db: Session, status: str) -> List[Document]:
+    """
+    Get documents by download status.
+    
+    Args:
+        db: Database session
+        status: Download status (PENDING, DOWNLOADING, DOWNLOADED, FAILED)
+        
+    Returns:
+        List of Document objects
+    """
+    return db.query(Document).filter(Document.download_status == status).all()
+
+
+def get_extracted_fields_by_tender(db: Session, tender_id: str) -> List[ExtractedField]:
+    """
+    Get all extracted fields for a specific tender.
+    
+    Args:
+        db: Database session
+        tender_id: Tender ID
+        
+    Returns:
+        List of ExtractedField objects
+    """
+    return db.query(ExtractedField).filter(ExtractedField.tender_id == tender_id).all()
+
+
+def get_scrape_logs_by_status(db: Session, status: str) -> List[ScrapeLog]:
+    """
+    Get scrape logs by status.
+    
+    Args:
+        db: Database session
+        status: Scrape status (SUCCESS, PARTIAL, FAILED)
+        
+    Returns:
+        List of ScrapeLog objects
+    """
+    return db.query(ScrapeLog).filter(ScrapeLog.status == status).all()
+

@@ -16,7 +16,10 @@ from src.database.connection import Base
 from src.database.operations import (
     create_tender, get_tender, update_tender,
     save_tender_details, save_document, get_pending_downloads,
-    save_extracted_field, log_scrape_run
+    save_extracted_field, log_scrape_run,
+    get_tenders_by_department, get_tenders_by_date_range,
+    get_documents_by_status, get_extracted_fields_by_tender,
+    get_scrape_logs_by_status
 )
 from src.utils.exceptions import DatabaseException
 
@@ -360,3 +363,154 @@ class TestOperationsIntegration:
         pending = get_pending_downloads(db_session)
         assert len(pending) == 1
         assert pending[0].filename == "intg_doc1.pdf"
+
+
+class TestQueryOperations:
+    """Tests for additional query operations."""
+    
+    def test_get_tenders_by_department(self, db_session):
+        """Test querying tenders by department."""
+        # Create tenders for different departments
+        dept1_tender1 = {"tender_id": "DEPT1-001", "department": "Public Works", "work_name": "Road Work"}
+        dept1_tender2 = {"tender_id": "DEPT1-002", "department": "Public Works", "work_name": "Bridge Work"}
+        dept2_tender = {"tender_id": "DEPT2-001", "department": "Water Resources", "work_name": "Dam Work"}
+        
+        create_tender(db_session, dept1_tender1)
+        create_tender(db_session, dept1_tender2)
+        create_tender(db_session, dept2_tender)
+        
+        # Query tenders by department
+        public_works_tenders = get_tenders_by_department(db_session, "Public Works")
+        water_resources_tenders = get_tenders_by_department(db_session, "Water Resources")
+        
+        assert len(public_works_tenders) == 2
+        assert len(water_resources_tenders) == 1
+        assert all(t.department == "Public Works" for t in public_works_tenders)
+        assert water_resources_tenders[0].work_name == "Dam Work"
+    
+    def test_get_tenders_by_date_range(self, db_session):
+        """Test querying tenders by date range."""
+        # Create tenders with different published dates
+        tender1 = {"tender_id": "DATE-001", "work_name": "Work 1", "published_date": "2024-01-15"}
+        tender2 = {"tender_id": "DATE-002", "work_name": "Work 2", "published_date": "2024-02-15"}
+        tender3 = {"tender_id": "DATE-003", "work_name": "Work 3", "published_date": "2024-03-15"}
+        tender4 = {"tender_id": "DATE-004", "work_name": "Work 4", "published_date": "2024-04-15"}
+        
+        create_tender(db_session, tender1)
+        create_tender(db_session, tender2)
+        create_tender(db_session, tender3)
+        create_tender(db_session, tender4)
+        
+        # Query tenders in date range
+        jan_to_feb = get_tenders_by_date_range(db_session, "2024-01-01", "2024-02-28")
+        feb_to_mar = get_tenders_by_date_range(db_session, "2024-02-01", "2024-03-31")
+        all_dates = get_tenders_by_date_range(db_session, "2024-01-01", "2024-12-31")
+        
+        assert len(jan_to_feb) == 2
+        assert len(feb_to_mar) == 2
+        assert len(all_dates) == 4
+        assert jan_to_feb[0].tender_id in ["DATE-001", "DATE-002"]
+    
+    def test_get_documents_by_status(self, db_session):
+        """Test querying documents by status."""
+        # Create parent tender
+        tender_data = {"tender_id": "DOC-TEST-001", "work_name": "Document Test"}
+        create_tender(db_session, tender_data)
+        
+        # Create documents with different statuses
+        doc1 = {"filename": "doc1.pdf", "download_status": "PENDING"}
+        doc2 = {"filename": "doc2.pdf", "download_status": "DOWNLOADED"}
+        doc3 = {"filename": "doc3.pdf", "download_status": "PENDING"}
+        doc4 = {"filename": "doc4.pdf", "download_status": "FAILED"}
+        
+        save_document(db_session, "DOC-TEST-001", doc1)
+        save_document(db_session, "DOC-TEST-001", doc2)
+        save_document(db_session, "DOC-TEST-001", doc3)
+        save_document(db_session, "DOC-TEST-001", doc4)
+        
+        # Query documents by status
+        pending_docs = get_documents_by_status(db_session, "PENDING")
+        downloaded_docs = get_documents_by_status(db_session, "DOWNLOADED")
+        failed_docs = get_documents_by_status(db_session, "FAILED")
+        
+        assert len(pending_docs) == 2
+        assert len(downloaded_docs) == 1
+        assert len(failed_docs) == 1
+        assert all(doc.download_status == "PENDING" for doc in pending_docs)
+    
+    def test_get_extracted_fields_by_tender(self, db_session):
+        """Test querying extracted fields by tender ID."""
+        # Create tenders and documents
+        tender1_data = {"tender_id": "FIELD-001", "work_name": "Field Test 1"}
+        tender2_data = {"tender_id": "FIELD-002", "work_name": "Field Test 2"}
+        tender1 = create_tender(db_session, tender1_data)
+        tender2 = create_tender(db_session, tender2_data)
+        
+        doc1 = save_document(db_session, "FIELD-001", {"filename": "doc1.pdf"})
+        doc2 = save_document(db_session, "FIELD-002", {"filename": "doc2.pdf"})
+        
+        # Create extracted fields
+        field1 = {"field_name": "emd", "field_value": "10000"}
+        field2 = {"field_name": "tender_fee", "field_value": "500"}
+        field3 = {"field_name": "emd", "field_value": "20000"}
+        
+        save_extracted_field(db_session, "FIELD-001", doc1.id, field1)
+        save_extracted_field(db_session, "FIELD-001", doc1.id, field2)
+        save_extracted_field(db_session, "FIELD-002", doc2.id, field3)
+        
+        # Query extracted fields by tender
+        tender1_fields = get_extracted_fields_by_tender(db_session, "FIELD-001")
+        tender2_fields = get_extracted_fields_by_tender(db_session, "FIELD-002")
+        
+        assert len(tender1_fields) == 2
+        assert len(tender2_fields) == 1
+        assert all(f.tender_id == "FIELD-001" for f in tender1_fields)
+        field_names = [f.field_name for f in tender1_fields]
+        assert "emd" in field_names
+        assert "tender_fee" in field_names
+    
+    def test_get_scrape_logs_by_status(self, db_session):
+        """Test querying scrape logs by status."""
+        # Create scrape logs with different statuses
+        log1 = {"method": "api", "tenders_found": 100, "tenders_scraped": 100, "status": "SUCCESS"}
+        log2 = {"method": "selenium", "tenders_found": 50, "tenders_scraped": 45, "status": "PARTIAL"}
+        log3 = {"method": "api", "tenders_found": 200, "tenders_scraped": 200, "status": "SUCCESS"}
+        log4 = {"method": "hybrid", "tenders_found": 30, "tenders_scraped": 0, "status": "FAILED"}
+        
+        log_scrape_run(db_session, log1)
+        log_scrape_run(db_session, log2)
+        log_scrape_run(db_session, log3)
+        log_scrape_run(db_session, log4)
+        
+        # Query logs by status
+        success_logs = get_scrape_logs_by_status(db_session, "SUCCESS")
+        partial_logs = get_scrape_logs_by_status(db_session, "PARTIAL")
+        failed_logs = get_scrape_logs_by_status(db_session, "FAILED")
+        
+        assert len(success_logs) == 2
+        assert len(partial_logs) == 1
+        assert len(failed_logs) == 1
+        assert all(log.status == "SUCCESS" for log in success_logs)
+        assert partial_logs[0].tenders_scraped == 45
+    
+    def test_query_with_empty_results(self, db_session):
+        """Test queries that return no results."""
+        # Query non-existent department
+        no_dept = get_tenders_by_department(db_session, "Nonexistent Department")
+        assert len(no_dept) == 0
+        
+        # Query date range with no tenders
+        no_dates = get_tenders_by_date_range(db_session, "2025-01-01", "2025-12-31")
+        assert len(no_dates) == 0
+        
+        # Query status with no documents
+        no_docs = get_documents_by_status(db_session, "ARCHIVED")
+        assert len(no_docs) == 0
+        
+        # Query non-existent tender fields
+        no_fields = get_extracted_fields_by_tender(db_session, "NONEXISTENT")
+        assert len(no_fields) == 0
+        
+        # Query status with no logs
+        no_logs = get_scrape_logs_by_status(db_session, "CANCELLED")
+        assert len(no_logs) == 0
